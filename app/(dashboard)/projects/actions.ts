@@ -48,9 +48,12 @@ export async function createProject(_prev: ActionState, formData: FormData): Pro
     return { error: error?.message ?? "Failed to create project." };
   }
 
+  // The creator always manages their project; a person is either a Manager or a Developer, never both.
+  const managers = new Set([profile.id, ...managerIds]);
+  const developers = new Set(developerIds.filter((id) => !managers.has(id)));
   const members = [
-    ...managerIds.filter((id) => id !== profile.id).map((id) => ({ project_id: project.id, user_id: id, member_role: "MANAGER" as const })),
-    ...developerIds.map((id) => ({ project_id: project.id, user_id: id, member_role: "DEVELOPER" as const })),
+    ...[...managers].map((id) => ({ project_id: project.id, user_id: id, member_role: "MANAGER" as const })),
+    ...[...developers].map((id) => ({ project_id: project.id, user_id: id, member_role: "DEVELOPER" as const })),
   ];
 
   if (members.length > 0) {

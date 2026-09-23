@@ -48,6 +48,7 @@ function QuickAdd({
         <TypeBadge type={type} compact />
         <input
           autoFocus
+          maxLength={200}
           value={value}
           disabled={busy}
           onChange={(e) => setValue(e.target.value)}
@@ -192,7 +193,7 @@ export function TreeView({
             onChange={(assignee_id) => update(item.id, { assignee_id })}
           />
           <PriorityPicker value={item.priority} disabled={!canEdit} onChange={(priority) => update(item.id, { priority })} />
-          <StagePicker value={item.stage} disabled={!canEdit} onChange={(stage) => update(item.id, { stage })} />
+          <StagePicker value={item.stage} disabled={!canEdit} canComplete={canManage} onChange={(stage) => update(item.id, { stage })} />
           <input
             type="date"
             value={item.due_date ?? ""}

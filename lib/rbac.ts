@@ -47,6 +47,11 @@ export function canChangeRole(actor: Actor, target: Target) {
   return canEditUser(actor, target) && actor!.id !== target.id;
 }
 
+// Only System Admins reset other people's passwords; everyone changes their own via Change password.
+export function canResetPassword(actor: Actor, target: Target) {
+  return actor?.role === "ADMIN" && actor.id !== target.id;
+}
+
 export function canChangeStatus(actor: Actor, target: Target) {
   return canEditUser(actor, target) && actor!.id !== target.id;
 }

@@ -3,7 +3,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { AnimatePresence, motion } from "motion/react";
-import { Inbox } from "lucide-react";
+import { Inbox, Lock } from "lucide-react";
 import { KanbanCard, type CardMeta } from "./card";
 import { STAGE_STYLES } from "@/components/shared/badges";
 import { STAGE_LABELS, type Stage, type WorkItem } from "@/lib/types";
@@ -38,6 +38,8 @@ export function KanbanColumn({
   metaById,
   canEdit,
   celebrate,
+  locked = false,
+  dragging = false,
   onOpen,
 }: {
   stage: Stage;
@@ -45,16 +47,21 @@ export function KanbanColumn({
   metaById: Map<string, CardMeta>;
   canEdit: boolean;
   celebrate: number;
+  locked?: boolean;
+  dragging?: boolean;
   onOpen: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
   const s = STAGE_STYLES[stage];
+  const blocked = locked && dragging;
 
   return (
     <div
       className={cn(
         "flex w-[19rem] shrink-0 flex-col rounded-2xl border bg-muted/30 backdrop-blur-sm transition-all duration-300",
-        isOver && cn("bg-muted/60 ring-2", s.ring)
+        isOver && !blocked && cn("bg-muted/60 ring-2", s.ring),
+        blocked && "opacity-60",
+        blocked && isOver && "ring-2 ring-destructive/50"
       )}
     >
       <div className={cn("h-1 rounded-t-2xl opacity-80", s.bar)} />
@@ -64,6 +71,14 @@ export function KanbanColumn({
             {stage === "IN_PROGRESS" && <span className={cn("absolute inset-0 animate-ping rounded-full opacity-60", s.dot)} />}
           </span>
           <h3 className="text-sm font-semibold">{STAGE_LABELS[stage]}</h3>
+          {locked && (
+            <span
+              title="Only project managers can move work into Completed"
+              className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+            >
+              <Lock className="size-2.5" /> Managers
+            </span>
+          )}
           <AnimatePresence>{celebrate > 0 && <Burst key={celebrate} id={celebrate} />}</AnimatePresence>
         </div>
         <motion.span
@@ -89,7 +104,17 @@ export function KanbanColumn({
             />
           ))}
         </SortableContext>
-        {items.length === 0 && (
+        {blocked && (
+          <div
+            className={cn(
+              "flex items-center justify-center gap-1.5 rounded-xl border-2 border-dashed py-4 text-xs font-medium transition-colors",
+              isOver ? "border-destructive/50 bg-destructive/5 text-destructive" : "border-border text-muted-foreground"
+            )}
+          >
+            <Lock className="size-3.5" /> Manager sign-off only
+          </div>
+        )}
+        {items.length === 0 && !blocked && (
           <div
             className={cn(
               "flex flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed py-8 text-xs text-muted-foreground transition-colors",

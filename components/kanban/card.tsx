@@ -51,7 +51,7 @@ export function CardFace({
         </p>
       )}
 
-      <p className={cn("mt-1.5 text-sm font-medium leading-snug", done && "text-muted-foreground line-through decoration-stage-done/60")}>
+      <p className={cn("mt-1.5 text-sm font-medium leading-snug [overflow-wrap:anywhere]", done && "text-muted-foreground line-through decoration-stage-done/60")}>
         {item.title}
       </p>
 

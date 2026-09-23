@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireProfile, usernameToInternalEmail } from "@/lib/auth";
-import { assignableRoles, canChangeRole, canChangeStatus, canEditUser, canManageUsers, roleLabel } from "@/lib/rbac";
+import { assignableRoles, canChangeRole, canChangeStatus, canEditUser, canManageUsers, canResetPassword, roleLabel } from "@/lib/rbac";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Profile, Role } from "@/lib/types";
 
@@ -172,7 +172,14 @@ export async function resetUserPassword(userId: string, password: string): Promi
     const actor = await requireUserManager();
     if (password.length < 6) return { error: "Password must be at least 6 characters." };
     const target = await loadTarget(userId);
-    if (!canEditUser(actor, target)) return { error: "You don't have permission to reset this user's password." };
+    if (!canResetPassword(actor, target)) {
+      return {
+        error:
+          actor.id === target.id
+            ? "Use Change password in your account menu to update your own password."
+            : "Only System Admins can reset other people's passwords.",
+      };
+    }
 
     const { error } = await createAdminClient().auth.admin.updateUserById(userId, { password });
     if (error) return { error: error.message };

@@ -115,12 +115,13 @@ function Body({
               e.currentTarget.blur();
             }
           }}
-          className="field-sizing-content w-full resize-none rounded-lg bg-transparent px-1 text-xl font-semibold tracking-tight outline-none transition-colors hover:bg-muted/40 focus:bg-muted/40"
+          maxLength={200}
+          className="field-sizing-content w-full resize-none rounded-lg bg-transparent px-1 text-xl font-semibold tracking-tight [overflow-wrap:anywhere] outline-none transition-colors hover:bg-muted/40 focus:bg-muted/40"
         />
 
         <div className="rounded-2xl border bg-card/60 px-4 py-2">
           <Row label="Stage">
-            <StagePicker value={item.stage} disabled={!canEdit} onChange={(stage) => onUpdate(item.id, { stage })} />
+            <StagePicker value={item.stage} disabled={!canEdit} canComplete={canManage} onChange={(stage) => onUpdate(item.id, { stage })} />
           </Row>
           <Row label="Priority">
             <PriorityPicker value={item.priority} disabled={!canEdit} onChange={(priority) => onUpdate(item.id, { priority })} />
@@ -205,6 +206,7 @@ function Body({
               >
                 {creating ? <Loader2 className="size-4 animate-spin text-brand" /> : <Plus className="size-4 text-muted-foreground" />}
                 <input
+                  maxLength={200}
                   value={childTitle}
                   onChange={(e) => setChildTitle(e.target.value)}
                   placeholder={`Add a ${childType.toLowerCase()} and press Enter`}

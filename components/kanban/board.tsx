@@ -115,6 +115,7 @@ export function KanbanBoard({
     const from = stageOf(active.id);
     const to = stageOf(over.id);
     if (!from || !to || from === to) return;
+    if (to === "COMPLETED" && !canManage) return;
 
     setItems((prev) => {
       const overItem = prev.find((i) => i.id === over.id);
@@ -131,6 +132,15 @@ export function KanbanBoard({
     if (!before) return;
     if (!over) {
       setItems(before);
+      return;
+    }
+
+    const wasStage = before.find((i) => i.id === active.id)?.stage;
+    if (!canManage && wasStage !== "COMPLETED" && stageOf(over.id) === "COMPLETED") {
+      setItems(before);
+      toast.error("Only project managers can mark work as Completed", {
+        description: "Move it to Review and a manager will sign it off.",
+      });
       return;
     }
 
@@ -208,6 +218,8 @@ export function KanbanBoard({
               metaById={metaById}
               canEdit={canEdit}
               celebrate={stage === "COMPLETED" ? celebrate : 0}
+              locked={stage === "COMPLETED" && !canManage}
+              dragging={!!activeItem && activeItem.stage !== "COMPLETED"}
               onOpen={setOpenId}
             />
           ))}

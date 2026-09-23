@@ -10,7 +10,7 @@ const createSchema = z.object({
   projectId: z.string().uuid(),
   parentId: z.string().uuid().nullable(),
   type: z.enum(["STORY", "TASK", "SUBTASK"]),
-  title: z.string().trim().min(1),
+  title: z.string().trim().min(1).max(200),
   assigneeId: z.string().uuid().nullable().optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
 });
@@ -43,7 +43,7 @@ export async function createWorkItem(input: z.infer<typeof createSchema>) {
 const updateSchema = z.object({
   id: z.string().uuid(),
   projectId: z.string().uuid(),
-  title: z.string().trim().min(1).optional(),
+  title: z.string().trim().min(1).max(200).optional(),
   description: z.string().nullable().optional(),
   assigneeId: z.string().uuid().nullable().optional(),
   stage: z.enum(["UNASSIGNED", "IN_PROGRESS", "REVIEW", "COMPLETED"]).optional(),

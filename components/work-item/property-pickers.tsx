@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, UserRound } from "lucide-react";
+import { Check, Lock, UserRound } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AssigneeAvatar, PriorityBadge, StageBadge } from "@/components/shared/badges";
 import { PRIORITIES, STAGES, type Priority, type Profile, type Stage } from "@/lib/types";
@@ -17,10 +17,12 @@ export function StagePicker({
   value,
   onChange,
   disabled,
+  canComplete = true,
 }: {
   value: Stage;
   onChange: (s: Stage) => void;
   disabled?: boolean;
+  canComplete?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -28,13 +30,30 @@ export function StagePicker({
       <PopoverTrigger disabled={disabled} className={triggerCls} onClick={(e) => e.stopPropagation()}>
         <StageBadge stage={value} />
       </PopoverTrigger>
-      <PopoverContent className="w-48 p-1" align="start" onClick={(e) => e.stopPropagation()}>
-        {STAGES.map((s) => (
-          <button key={s} className={menuItemCls} onClick={() => { onChange(s); setOpen(false); }}>
-            <StageBadge stage={s} />
-            {s === value && <Check className="size-3.5 text-brand" />}
-          </button>
-        ))}
+      <PopoverContent className="w-52 p-1" align="start" onClick={(e) => e.stopPropagation()}>
+        {STAGES.map((s) => {
+          const locked = s === "COMPLETED" && !canComplete && value !== "COMPLETED";
+          return (
+            <button
+              key={s}
+              disabled={locked}
+              title={locked ? "Only project managers can mark work as Completed" : undefined}
+              className={cn(menuItemCls, locked && "cursor-not-allowed opacity-50 hover:bg-transparent")}
+              onClick={() => {
+                onChange(s);
+                setOpen(false);
+              }}
+            >
+              <StageBadge stage={s} />
+              {s === value && <Check className="size-3.5 text-brand" />}
+              {locked && (
+                <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                  <Lock className="size-3" /> Managers
+                </span>
+              )}
+            </button>
+          );
+        })}
       </PopoverContent>
     </Popover>
   );

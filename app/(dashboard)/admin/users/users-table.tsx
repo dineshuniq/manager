@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { ArrowLeftRight, Check, ChevronDown, KeyRound, Loader2, Lock, MoreHorizontal, Pencil, Plus, Power, Search, Shield, UserCog, Users, Code2 } from "lucide-react";
 import { createUser, updateUser, setUserRole, setUserStatus, resetUserPassword } from "./actions";
 import type { Profile, Role } from "@/lib/types";
-import { assignableRoles, canChangeRole, canChangeStatus, canEditUser, roleLabel } from "@/lib/rbac";
+import { assignableRoles, canChangeRole, canChangeStatus, canEditUser, canResetPassword, roleLabel } from "@/lib/rbac";
+import { ChangePasswordDialog } from "@/components/shell/change-password-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AssigneeAvatar } from "@/components/shared/badges";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -58,7 +59,7 @@ function RoleSelect({ id, defaultValue, roles }: { id: string; defaultValue: Rol
 function RoleSwap({ user, actor, onSwap }: { user: Profile; actor: Actor; onSwap: (role: Role) => void }) {
   const [open, setOpen] = useState(false);
   const pill = (
-    <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset", ROLE_STYLES[user.role])}>
+    <span className={cn("inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset", ROLE_STYLES[user.role])}>
       {roleLabel(user.role)}
     </span>
   );
@@ -97,7 +98,7 @@ function RoleSwap({ user, actor, onSwap }: { user: Profile; actor: Actor; onSwap
             }}
             className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent"
           >
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset", ROLE_STYLES[r])}>{roleLabel(r)}</span>
+            <span className={cn("whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset", ROLE_STYLES[r])}>{roleLabel(r)}</span>
             {r === user.role && <Check className="size-3.5 text-brand" />}
           </button>
         ))}
@@ -326,6 +327,7 @@ export function UsersTable({ users: serverUsers, actor }: { users: Profile[]; ac
   );
   const [editing, setEditing] = useState<Profile | null>(null);
   const [resetting, setResetting] = useState<Profile | null>(null);
+  const [changingOwn, setChangingOwn] = useState(false);
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<"ALL" | Role>("ALL");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -504,9 +506,17 @@ export function UsersTable({ users: serverUsers, actor }: { users: Profile[]; ac
                           <DropdownMenuItem onClick={() => setEditing(u)}>
                             <Pencil className="size-4" /> Edit details
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setResetting(u)}>
-                            <KeyRound className="size-4" /> Reset password
-                          </DropdownMenuItem>
+                          {u.id === actor.id ? (
+                            <DropdownMenuItem onClick={() => setChangingOwn(true)}>
+                              <KeyRound className="size-4" /> Change password
+                            </DropdownMenuItem>
+                          ) : (
+                            canResetPassword(actor, u) && (
+                              <DropdownMenuItem onClick={() => setResetting(u)}>
+                                <KeyRound className="size-4" /> Reset password
+                              </DropdownMenuItem>
+                            )
+                          )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             disabled={!canChangeStatus(actor, u)}
@@ -531,6 +541,7 @@ export function UsersTable({ users: serverUsers, actor }: { users: Profile[]; ac
       </div>
 
       {editing && <EditUserDialog key={editing.id} user={editing} actor={actor} onOpenChange={(v) => !v && setEditing(null)} />}
+      <ChangePasswordDialog open={changingOwn} onOpenChange={setChangingOwn} />
       {resetting && <ResetPasswordDialog key={resetting.id} user={resetting} onOpenChange={(v) => !v && setResetting(null)} />}
     </div>
   );
