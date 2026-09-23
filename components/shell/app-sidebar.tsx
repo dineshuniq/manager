@@ -2,14 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { motion } from "motion/react";
-import { FolderKanban, LogOut, Menu, Users } from "lucide-react";
+import { ChevronsUpDown, FolderKanban, KeyRound, LogOut, Menu, Users } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { Logo } from "@/components/shared/logo";
 import { AssigneeAvatar } from "@/components/shared/badges";
 import { ThemeToggle } from "@/components/theme";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChangePasswordDialog } from "./change-password-dialog";
 import { roleLabel } from "@/lib/rbac";
 import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -29,18 +37,21 @@ function NavContent({
   profile,
   projects,
   onNavigate,
+  onChangePassword,
   layoutGroup,
 }: {
   profile: Profile;
   projects: NavProject[];
   onNavigate?: () => void;
+  onChangePassword: () => void;
   layoutGroup: string;
 }) {
   const pathname = usePathname() ?? "";
+  const [, startSignOut] = useTransition();
 
   const items = [
     { href: "/projects", label: "Projects", icon: FolderKanban, active: pathname === "/projects" || pathname === "/projects/new" },
-    ...(profile.role === "ADMIN"
+    ...(profile.role === "ADMIN" || profile.role === "MANAGER"
       ? [{ href: "/admin/users", label: "Users", icon: Users, active: pathname.startsWith("/admin/users") }]
       : []),
   ];
@@ -118,23 +129,40 @@ function NavContent({
       )}
 
       <div className="mt-auto p-3">
-        <div className="flex items-center gap-2.5 rounded-xl border bg-surface/60 p-2.5">
-          <AssigneeAvatar profile={profile} size="md" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium leading-tight">{profile.name}</p>
-            <p className="truncate text-[11px] text-muted-foreground">{roleLabel(profile.role)}</p>
-          </div>
-          <ThemeToggle />
-          <form action={logout}>
-            <button
-              type="submit"
-              aria-label="Sign out"
-              title="Sign out"
-              className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+        <div className="flex items-center gap-1 rounded-xl border bg-surface/60 p-1.5">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Account menu"
+              className="group flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1 text-left outline-none transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/50 data-[popup-open]:bg-accent/60"
             >
-              <LogOut className="size-4" />
-            </button>
-          </form>
+              <AssigneeAvatar profile={profile} size="md" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium leading-tight">{profile.name}</span>
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  @{profile.username} · {roleLabel(profile.role)}
+                </span>
+              </span>
+              <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-56">
+              <div className="flex items-center gap-2.5 px-2 py-2">
+                <AssigneeAvatar profile={profile} size="md" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium leading-tight">{profile.name}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">@{profile.username}</p>
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onChangePassword}>
+                <KeyRound className="size-4" /> Change password
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => startSignOut(() => logout())}>
+                <LogOut className="size-4" /> Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <ThemeToggle />
         </div>
       </div>
     </div>
@@ -143,11 +171,12 @@ function NavContent({
 
 export function AppSidebar({ profile, projects }: { profile: Profile; projects: NavProject[] }) {
   const [open, setOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   return (
     <>
       <aside className="glass sticky top-0 hidden h-svh w-64 shrink-0 border-r md:block">
-        <NavContent profile={profile} projects={projects} layoutGroup="desktop" />
+        <NavContent profile={profile} projects={projects} layoutGroup="desktop" onChangePassword={() => setPasswordOpen(true)} />
       </aside>
 
       <header className="glass sticky top-0 z-30 flex h-14 items-center justify-between border-b px-4 md:hidden">
@@ -163,10 +192,21 @@ export function AppSidebar({ profile, projects }: { profile: Profile; projects: 
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0" showCloseButton={false}>
             <SheetTitle className="sr-only">Navigation</SheetTitle>
-            <NavContent profile={profile} projects={projects} onNavigate={() => setOpen(false)} layoutGroup="mobile" />
+            <NavContent
+              profile={profile}
+              projects={projects}
+              onNavigate={() => setOpen(false)}
+              onChangePassword={() => {
+                setOpen(false);
+                setPasswordOpen(true);
+              }}
+              layoutGroup="mobile"
+            />
           </SheetContent>
         </Sheet>
       </header>
+
+      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
     </>
   );
 }

@@ -22,6 +22,35 @@ export function canCreateStory(
   return canManageProject(profile, memberRole);
 }
 
+type Actor = Pick<Profile, "id" | "role"> | null | undefined;
+type Target = Pick<Profile, "id" | "role">;
+
+export function canManageUsers(actor: Pick<Profile, "role"> | null | undefined) {
+  return actor?.role === "ADMIN" || actor?.role === "MANAGER";
+}
+
+// Managers can hand out Manager/Developer only — never Admin — so they can't escalate anyone, including themselves.
+export function assignableRoles(actor: Pick<Profile, "role"> | null | undefined): Role[] {
+  if (actor?.role === "ADMIN") return ["ADMIN", "MANAGER", "DEVELOPER"];
+  if (actor?.role === "MANAGER") return ["MANAGER", "DEVELOPER"];
+  return [];
+}
+
+export function canEditUser(actor: Actor, target: Target) {
+  if (!actor || !canManageUsers(actor)) return false;
+  if (actor.role === "ADMIN") return true;
+  return target.role !== "ADMIN";
+}
+
+// Nobody changes their own role or deactivates themselves (prevents self-escalation and last-admin lockout).
+export function canChangeRole(actor: Actor, target: Target) {
+  return canEditUser(actor, target) && actor!.id !== target.id;
+}
+
+export function canChangeStatus(actor: Actor, target: Target) {
+  return canEditUser(actor, target) && actor!.id !== target.id;
+}
+
 export function roleLabel(role: Role) {
   switch (role) {
     case "ADMIN":

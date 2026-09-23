@@ -4,10 +4,11 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { formatDate } from "@/lib/format";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { KeyRound, Loader2, MoreHorizontal, Pencil, Plus, Power, Search, Shield, UserCog, Users, Code2 } from "lucide-react";
-import { createUser, updateUser, setUserStatus, resetUserPassword } from "./actions";
+import { ArrowLeftRight, Check, ChevronDown, KeyRound, Loader2, Lock, MoreHorizontal, Pencil, Plus, Power, Search, Shield, UserCog, Users, Code2 } from "lucide-react";
+import { createUser, updateUser, setUserRole, setUserStatus, resetUserPassword } from "./actions";
 import type { Profile, Role } from "@/lib/types";
-import { roleLabel } from "@/lib/rbac";
+import { assignableRoles, canChangeRole, canChangeStatus, canEditUser, roleLabel } from "@/lib/rbac";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AssigneeAvatar } from "@/components/shared/badges";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,18 +36,73 @@ function Field({ label, htmlFor, hint, children }: { label: string; htmlFor: str
   );
 }
 
-function RoleSelect({ id, defaultValue }: { id: string; defaultValue: Role }) {
+type Actor = Pick<Profile, "id" | "role">;
+
+function RoleSelect({ id, defaultValue, roles }: { id: string; defaultValue: Role; roles: Role[] }) {
   return (
     <Select name="role" defaultValue={defaultValue}>
       <SelectTrigger id={id} className="h-10 w-full rounded-xl">
         <SelectValue>{(v: Role) => roleLabel(v)}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="ADMIN">System Admin</SelectItem>
-        <SelectItem value="MANAGER">Project Manager</SelectItem>
-        <SelectItem value="DEVELOPER">Developer</SelectItem>
+        {roles.map((r) => (
+          <SelectItem key={r} value={r}>
+            {roleLabel(r)}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
+  );
+}
+
+function RoleSwap({ user, actor, onSwap }: { user: Profile; actor: Actor; onSwap: (role: Role) => void }) {
+  const [open, setOpen] = useState(false);
+  const pill = (
+    <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset", ROLE_STYLES[user.role])}>
+      {roleLabel(user.role)}
+    </span>
+  );
+
+  if (!canChangeRole(actor, user)) {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5"
+        title={user.id === actor.id ? "You can't change your own role" : "Only System Admins can change an Admin's role"}
+      >
+        {pill}
+        {user.role === "ADMIN" && actor.role !== "ADMIN" && <Lock className="size-3 text-muted-foreground/60" />}
+      </span>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className="group/role inline-flex items-center gap-1 rounded-full outline-none transition-all hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring/50"
+        title="Change role"
+      >
+        {pill}
+        <ChevronDown className="size-3 text-muted-foreground opacity-40 transition-opacity group-hover/role:opacity-100" />
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-52 p-1">
+        <p className="flex items-center gap-1.5 px-2 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          <ArrowLeftRight className="size-3" /> Swap role
+        </p>
+        {assignableRoles(actor).map((r) => (
+          <button
+            key={r}
+            onClick={() => {
+              setOpen(false);
+              if (r !== user.role) onSwap(r);
+            }}
+            className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent"
+          >
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset", ROLE_STYLES[r])}>{roleLabel(r)}</span>
+            {r === user.role && <Check className="size-3.5 text-brand" />}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -80,7 +136,7 @@ function ErrorNote({ error }: { error?: string }) {
   );
 }
 
-function CreateUserDialog() {
+function CreateUserDialog({ roles }: { roles: Role[] }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
@@ -123,7 +179,7 @@ function CreateUserDialog() {
             </Field>
           </div>
           <Field label="Role" htmlFor="role">
-            <RoleSelect id="role" defaultValue="DEVELOPER" />
+            <RoleSelect id="role" defaultValue="DEVELOPER" roles={roles} />
           </Field>
           <Field label="Email" htmlFor="email" hint="optional">
             <input id="email" name="email" type="email" placeholder="jane@company.com" className={fieldCls} />
@@ -138,7 +194,7 @@ function CreateUserDialog() {
   );
 }
 
-function EditUserDialog({ user, onOpenChange }: { user: Profile; onOpenChange: (v: boolean) => void }) {
+function EditUserDialog({ user, actor, onOpenChange }: { user: Profile; actor: Actor; onOpenChange: (v: boolean) => void }) {
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
 
@@ -171,8 +227,18 @@ function EditUserDialog({ user, onOpenChange }: { user: Profile; onOpenChange: (
           <Field label="Full name" htmlFor="edit-name">
             <input id="edit-name" name="name" defaultValue={user.name} required className={fieldCls} />
           </Field>
-          <Field label="Role" htmlFor="edit-role">
-            <RoleSelect id="edit-role" defaultValue={user.role} />
+          <Field label="Role" htmlFor="edit-role" hint={canChangeRole(actor, user) ? undefined : "locked"}>
+            {canChangeRole(actor, user) ? (
+              <RoleSelect id="edit-role" defaultValue={user.role} roles={assignableRoles(actor)} />
+            ) : (
+              <>
+                <input type="hidden" name="role" value={user.role} />
+                <div className="flex h-10 items-center gap-2 rounded-xl border border-dashed px-3 text-sm text-muted-foreground">
+                  <Lock className="size-3.5" /> {roleLabel(user.role)}
+                  <span className="text-xs">· you can&apos;t change your own role</span>
+                </div>
+              </>
+            )}
           </Field>
           <Field label="Email" htmlFor="edit-email" hint="optional">
             <input id="edit-email" name="email" type="email" defaultValue={user.email ?? ""} className={fieldCls} />
@@ -203,12 +269,12 @@ function ResetPasswordDialog({ user, onOpenChange }: { user: Profile; onOpenChan
           onSubmit={(e) => {
             e.preventDefault();
             startTransition(async () => {
-              try {
-                await resetUserPassword(user.id, password);
+              const result = await resetUserPassword(user.id, password);
+              if (result.success) {
                 toast.success("Password reset", { description: `Share the new password with ${user.name}.` });
                 onOpenChange(false);
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to reset password.");
+              } else {
+                toast.error(result.error ?? "Failed to reset password.");
               }
             });
           }}
@@ -252,7 +318,12 @@ const ROLE_FILTERS: { value: "ALL" | Role; label: string }[] = [
   { value: "DEVELOPER", label: "Developers" },
 ];
 
-export function UsersTable({ users, currentUserId }: { users: Profile[]; currentUserId: string }) {
+export function UsersTable({ users: serverUsers, actor }: { users: Profile[]; actor: Actor }) {
+  const [roleOverrides, setRoleOverrides] = useState<Record<string, Role>>({});
+  const users = useMemo(
+    () => serverUsers.map((u) => (roleOverrides[u.id] ? { ...u, role: roleOverrides[u.id] } : u)),
+    [serverUsers, roleOverrides]
+  );
   const [editing, setEditing] = useState<Profile | null>(null);
   const [resetting, setResetting] = useState<Profile | null>(null);
   const [query, setQuery] = useState("");
@@ -286,13 +357,23 @@ export function UsersTable({ users, currentUserId }: { users: Profile[]; current
   function toggleStatus(u: Profile) {
     setBusyId(u.id);
     startTransition(async () => {
-      try {
-        await setUserStatus(u.id, u.status === "ACTIVE" ? "INACTIVE" : "ACTIVE");
-        toast.success(u.status === "ACTIVE" ? `${u.name} deactivated` : `${u.name} reactivated`);
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Failed to update status.");
-      } finally {
-        setBusyId(null);
+      const result = await setUserStatus(u.id, u.status === "ACTIVE" ? "INACTIVE" : "ACTIVE");
+      if (result.success) toast.success(u.status === "ACTIVE" ? `${u.name} deactivated` : `${u.name} reactivated`);
+      else toast.error(result.error ?? "Failed to update status.");
+      setBusyId(null);
+    });
+  }
+
+  function swapRole(u: Profile, next: Role) {
+    const previous = u.role;
+    setRoleOverrides((o) => ({ ...o, [u.id]: next }));
+    startTransition(async () => {
+      const result = await setUserRole(u.id, next);
+      if (result.success) {
+        toast.success(`${u.name} is now a ${roleLabel(next)}`);
+      } else {
+        setRoleOverrides((o) => ({ ...o, [u.id]: previous }));
+        toast.error(result.error ?? "Couldn't change role — reverted.");
       }
     });
   }
@@ -345,7 +426,7 @@ export function UsersTable({ users, currentUserId }: { users: Profile[]; current
           ))}
         </div>
         <div className="ml-auto">
-          <CreateUserDialog />
+          <CreateUserDialog roles={assignableRoles(actor)} />
         </div>
       </div>
 
@@ -378,7 +459,7 @@ export function UsersTable({ users, currentUserId }: { users: Profile[]; current
                         <div className="min-w-0">
                           <p className="flex items-center gap-1.5 truncate font-medium">
                             {u.name}
-                            {u.id === currentUserId && (
+                            {u.id === actor.id && (
                               <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">You</span>
                             )}
                           </p>
@@ -390,9 +471,7 @@ export function UsersTable({ users, currentUserId }: { users: Profile[]; current
                       </div>
                     </td>
                     <td className="px-5 py-3">
-                      <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset", ROLE_STYLES[u.role])}>
-                        {roleLabel(u.role)}
-                      </span>
+                      <RoleSwap user={u} actor={actor} onSwap={(r) => swapRole(u, r)} />
                     </td>
                     <td className="px-5 py-3">
                       <span className="inline-flex items-center gap-2 text-xs font-medium">
@@ -409,6 +488,14 @@ export function UsersTable({ users, currentUserId }: { users: Profile[]; current
                       {formatDate(u.created_at)}
                     </td>
                     <td className="px-5 py-3">
+                      {!canEditUser(actor, u) ? (
+                        <span
+                          title="Admin accounts are managed by System Admins"
+                          className="inline-flex size-8 items-center justify-center text-muted-foreground/50"
+                        >
+                          <Lock className="size-3.5" />
+                        </span>
+                      ) : (
                       <DropdownMenu>
                         <DropdownMenuTrigger className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
                           {busyId === u.id ? <Loader2 className="size-4 animate-spin" /> : <MoreHorizontal className="size-4" />}
@@ -422,7 +509,7 @@ export function UsersTable({ users, currentUserId }: { users: Profile[]; current
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            disabled={u.id === currentUserId}
+                            disabled={!canChangeStatus(actor, u)}
                             variant={u.status === "ACTIVE" ? "destructive" : "default"}
                             onClick={() => toggleStatus(u)}
                           >
@@ -430,6 +517,7 @@ export function UsersTable({ users, currentUserId }: { users: Profile[]; current
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      )}
                     </td>
                   </motion.tr>
                 ))}
@@ -442,7 +530,7 @@ export function UsersTable({ users, currentUserId }: { users: Profile[]; current
         </div>
       </div>
 
-      {editing && <EditUserDialog key={editing.id} user={editing} onOpenChange={(v) => !v && setEditing(null)} />}
+      {editing && <EditUserDialog key={editing.id} user={editing} actor={actor} onOpenChange={(v) => !v && setEditing(null)} />}
       {resetting && <ResetPasswordDialog key={resetting.id} user={resetting} onOpenChange={(v) => !v && setResetting(null)} />}
     </div>
   );
