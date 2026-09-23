@@ -11,20 +11,14 @@ export default async function UsersPage() {
   if (!isAdmin(profile)) redirect("/projects");
 
   const supabase = await createClient();
-  const { data: users } = await supabase
-    .from("profiles")
-    .select("*")
-    .order("created_at", { ascending: true });
+  const { data: users } = await supabase.from("profiles").select("*").order("created_at", { ascending: true });
 
   return (
-    <div className="mx-auto max-w-5xl p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Users</h1>
-          <p className="text-sm text-muted-foreground">
-            Create, update, and deactivate user accounts.
-          </p>
-        </div>
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8 sm:py-10">
+      <div className="animate-fade-up">
+        <p className="text-sm text-muted-foreground">Administration</p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight">People & access</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Create accounts, assign roles, and control who can sign in.</p>
       </div>
       <UsersTable users={(users as Profile[]) ?? []} currentUserId={profile.id} />
     </div>

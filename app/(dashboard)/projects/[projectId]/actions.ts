@@ -36,7 +36,7 @@ export async function createWorkItem(input: z.infer<typeof createSchema>) {
 
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/projects/${parsed.projectId}`);
+  revalidatePath(`/projects/${parsed.projectId}`, "layout");
   return data;
 }
 
@@ -69,7 +69,40 @@ export async function updateWorkItem(input: z.infer<typeof updateSchema>) {
   const { error } = await supabase.from("work_items").update(patch).eq("id", parsed.id);
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/projects/${parsed.projectId}`);
+  revalidatePath(`/projects/${parsed.projectId}`, "layout");
+}
+
+const reorderSchema = z.object({
+  projectId: z.string().uuid(),
+  updates: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        stage: z.enum(["UNASSIGNED", "IN_PROGRESS", "REVIEW", "COMPLETED"]),
+        position: z.number().int(),
+      })
+    )
+    .max(1000),
+});
+
+export async function reorderWorkItems(input: z.infer<typeof reorderSchema>) {
+  await requireProfile();
+  const parsed = reorderSchema.parse(input);
+  const supabase = await createClient();
+
+  const results = await Promise.all(
+    parsed.updates.map((u) =>
+      supabase
+        .from("work_items")
+        .update({ stage: u.stage, position: u.position })
+        .eq("id", u.id)
+        .eq("project_id", parsed.projectId)
+    )
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw new Error(failed.error.message);
+
+  revalidatePath(`/projects/${parsed.projectId}`, "layout");
 }
 
 export async function deleteWorkItem(id: string, projectId: string) {
@@ -77,7 +110,7 @@ export async function deleteWorkItem(id: string, projectId: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("work_items").delete().eq("id", id);
   if (error) throw new Error(error.message);
-  revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}`, "layout");
 }
 
 export type { Priority, Stage, WorkItemType };

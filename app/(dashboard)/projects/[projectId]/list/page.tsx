@@ -9,18 +9,13 @@ export default async function ProjectListPage({
   const { projectId } = await params;
   const { workItems, members, memberRole } = await getProjectContext(projectId);
 
-  const canEdit = memberRole !== null;
-  const canManage = memberRole === "ADMIN" || memberRole === "MANAGER";
-
   return (
-    <div className="overflow-x-auto">
-      <TreeView
-        projectId={projectId}
-        initialItems={workItems}
-        members={members}
-        canEdit={canEdit}
-        canManage={canManage}
-      />
-    </div>
+    <TreeView
+      projectId={projectId}
+      initialItems={workItems}
+      members={members}
+      canEdit={memberRole !== null}
+      canManage={memberRole === "ADMIN" || memberRole === "MANAGER"}
+    />
   );
 }

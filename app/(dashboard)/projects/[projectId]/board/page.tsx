@@ -9,9 +9,13 @@ export default async function ProjectBoardPage({
   const { projectId } = await params;
   const { workItems, members, memberRole } = await getProjectContext(projectId);
 
-  const canEdit = memberRole !== null;
-
   return (
-    <KanbanBoard projectId={projectId} initialItems={workItems} members={members} canEdit={canEdit} />
+    <KanbanBoard
+      projectId={projectId}
+      initialItems={workItems}
+      members={members}
+      canEdit={memberRole !== null}
+      canManage={memberRole === "ADMIN" || memberRole === "MANAGER"}
+    />
   );
 }

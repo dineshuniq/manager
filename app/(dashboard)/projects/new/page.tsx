@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth";
 import { canCreateProject } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
@@ -18,8 +20,17 @@ export default async function NewProjectPage() {
     .order("name");
 
   return (
-    <div className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-6 text-2xl font-semibold">New project</h1>
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8 sm:py-10">
+      <Link
+        href="/projects"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" /> Projects
+      </Link>
+      <div className="mt-4 animate-fade-up">
+        <h1 className="text-3xl font-semibold tracking-tight">New project</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Name it, describe it, and pick your team.</p>
+      </div>
       <NewProjectForm users={(users as Profile[]) ?? []} currentUserId={profile.id} />
     </div>
   );

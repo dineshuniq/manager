@@ -82,7 +82,7 @@ export async function addProjectMember(input: z.infer<typeof memberSchema>) {
     { onConflict: "project_id,user_id" }
   );
   if (error) throw new Error(error.message);
-  revalidatePath(`/projects/${parsed.projectId}`);
+  revalidatePath(`/projects/${parsed.projectId}`, "layout");
 }
 
 export async function removeProjectMember(projectId: string, userId: string) {
@@ -93,5 +93,5 @@ export async function removeProjectMember(projectId: string, userId: string) {
     .eq("project_id", projectId)
     .eq("user_id", userId);
   if (error) throw new Error(error.message);
-  revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}`, "layout");
 }

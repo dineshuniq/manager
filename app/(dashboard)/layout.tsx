@@ -1,11 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
-import { isAdmin } from "@/lib/rbac";
-import { roleLabel } from "@/lib/rbac";
-import { logout } from "@/app/login/actions";
-import { Button } from "@/components/ui/button";
-import { LayoutGrid, Users, LogOut } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { AppSidebar } from "@/components/shell/app-sidebar";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile();
@@ -13,42 +9,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login");
   }
 
+  const supabase = await createClient();
+  const { data: projects } = await supabase
+    .from("projects")
+    .select("id, title")
+    .order("created_at", { ascending: false });
+
   return (
-    <div className="flex min-h-svh">
-      <aside className="flex w-60 flex-col border-r bg-muted/20 p-4">
-        <div className="mb-6 px-2">
-          <p className="text-lg font-semibold">Project Manager</p>
-        </div>
-        <nav className="flex flex-1 flex-col gap-1">
-          <Link
-            href="/projects"
-            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium hover:bg-muted"
-          >
-            <LayoutGrid className="size-4" />
-            Projects
-          </Link>
-          {isAdmin(profile) && (
-            <Link
-              href="/admin/users"
-              className="flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium hover:bg-muted"
-            >
-              <Users className="size-4" />
-              Users
-            </Link>
-          )}
-        </nav>
-        <div className="mt-auto border-t pt-4">
-          <p className="truncate px-2 text-sm font-medium">{profile.name}</p>
-          <p className="truncate px-2 text-xs text-muted-foreground">{roleLabel(profile.role)}</p>
-          <form action={logout} className="mt-2">
-            <Button type="submit" variant="ghost" size="sm" className="w-full justify-start gap-2">
-              <LogOut className="size-4" />
-              Sign out
-            </Button>
-          </form>
-        </div>
-      </aside>
-      <main className="flex-1 overflow-auto">{children}</main>
+    <div className="relative flex min-h-svh flex-col md:flex-row">
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-grid [mask-image:linear-gradient(to_bottom,black,transparent_70%)]" />
+        <div className="absolute -top-40 left-1/3 size-[36rem] rounded-full bg-brand/10 blur-[120px]" />
+        <div className="absolute -top-20 right-0 size-[28rem] rounded-full bg-brand-2/8 blur-[120px]" />
+      </div>
+      <AppSidebar profile={profile} projects={projects ?? []} />
+      <main className="min-w-0 flex-1">{children}</main>
     </div>
   );
 }

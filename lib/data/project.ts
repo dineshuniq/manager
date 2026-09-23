@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -12,7 +13,7 @@ export interface ProjectContext {
   workItems: WorkItem[];
 }
 
-export async function getProjectContext(projectId: string): Promise<ProjectContext> {
+export const getProjectContext = cache(async function getProjectContext(projectId: string): Promise<ProjectContext> {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
 
@@ -55,4 +56,4 @@ export async function getProjectContext(projectId: string): Promise<ProjectConte
     members,
     workItems: (workItems as WorkItem[]) ?? [],
   };
-}
+});
