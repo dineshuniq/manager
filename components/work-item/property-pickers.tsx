@@ -107,14 +107,14 @@ export function AssigneePicker({
         disabled={disabled}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "inline-flex items-center gap-2 rounded-full outline-none transition-all hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none",
+          "inline-flex min-w-0 max-w-full items-center gap-2 rounded-full outline-none transition-all hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none",
           showName && "rounded-lg px-1 py-0.5 hover:bg-accent"
         )}
         title={current ? current.name : "Unassigned"}
       >
         <AssigneeAvatar profile={current} size={showName ? "sm" : "sm"} />
         {showName && (
-          <span className={cn("text-sm", !current && "text-muted-foreground")}>{current?.name ?? "Unassigned"}</span>
+          <span className={cn("truncate text-sm", !current && "text-muted-foreground")}>{current?.name ?? "Unassigned"}</span>
         )}
       </PopoverTrigger>
       <PopoverContent className="w-60 p-1" align="start" onClick={(e) => e.stopPropagation()}>

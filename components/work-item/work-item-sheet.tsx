@@ -76,7 +76,7 @@ function Body({
   return (
     <div className="flex h-full flex-col">
       <div className={cn("h-1 w-full shrink-0", STAGE_STYLES[item.stage].bar)} />
-      <div className="flex items-center justify-between gap-2 border-b px-5 py-3">
+      <div className="flex items-center justify-between gap-2 border-b px-5 py-3 sm:px-8">
         <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
           <TypeBadge type={item.type} />
           {trail.map((p) => (
@@ -97,7 +97,7 @@ function Body({
         </button>
       </div>
 
-      <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+      <div className="flex-1 space-y-6 overflow-y-auto px-5 py-6 sm:px-8">
         <SheetTitle className="sr-only">{item.title}</SheetTitle>
         <textarea
           value={title}
@@ -116,7 +116,7 @@ function Body({
             }
           }}
           maxLength={200}
-          className="field-sizing-content w-full resize-none rounded-lg bg-transparent px-1 text-xl font-semibold tracking-tight [overflow-wrap:anywhere] outline-none transition-colors hover:bg-muted/40 focus:bg-muted/40"
+          className="field-sizing-content w-full resize-none rounded-lg bg-transparent px-1 text-xl font-semibold leading-snug tracking-tight [overflow-wrap:anywhere] sm:text-2xl outline-none transition-colors hover:bg-muted/40 focus:bg-muted/40"
         />
 
         <div className="rounded-2xl border bg-card/60 px-4 py-2">
@@ -184,10 +184,10 @@ function Body({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
                     onClick={() => onOpen(c.id)}
-                    className="group flex w-full items-center gap-2.5 rounded-lg border bg-card/50 px-3 py-2 text-left transition-all hover:border-brand/30 hover:bg-accent/50"
+                    className="group flex w-full items-start gap-2.5 rounded-lg border bg-card/50 px-3 py-2 text-left transition-all hover:border-brand/30 hover:bg-accent/50"
                   >
-                    <span className={cn("size-2 shrink-0 rounded-full", STAGE_STYLES[c.stage].dot)} />
-                    <span className={cn("flex-1 truncate text-sm", c.stage === "COMPLETED" && "text-muted-foreground line-through")}>
+                    <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", STAGE_STYLES[c.stage].dot)} />
+                    <span className={cn("flex-1 text-sm leading-5 [overflow-wrap:anywhere]", c.stage === "COMPLETED" && "text-muted-foreground line-through")}>
                       {c.title}
                     </span>
                     <AssigneeAvatar profile={members.find((m) => m.id === c.assignee_id)} size="xs" />
@@ -202,15 +202,27 @@ function Body({
                   e.preventDefault();
                   addChild();
                 }}
-                className="mt-2 flex items-center gap-2 rounded-lg border border-dashed px-3 py-1.5 transition-colors focus-within:border-brand/50"
+                className="mt-2 flex items-start gap-2 rounded-lg border border-dashed px-3 py-1.5 transition-colors focus-within:border-brand/50 focus-within:bg-brand/5"
               >
-                {creating ? <Loader2 className="size-4 animate-spin text-brand" /> : <Plus className="size-4 text-muted-foreground" />}
-                <input
+                {creating ? (
+                  <Loader2 className="mt-1.5 size-4 shrink-0 animate-spin text-brand" />
+                ) : (
+                  <Plus className="mt-1.5 size-4 shrink-0 text-muted-foreground" />
+                )}
+                <textarea
+                  rows={1}
                   maxLength={200}
                   value={childTitle}
-                  onChange={(e) => setChildTitle(e.target.value)}
+                  disabled={creating}
+                  onChange={(e) => setChildTitle(e.target.value.replace(/\s*\n\s*/g, " "))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.currentTarget.form?.requestSubmit();
+                    }
+                  }}
                   placeholder={`Add a ${childType.toLowerCase()} and press Enter`}
-                  className="flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground/60"
+                  className="field-sizing-content min-h-7 flex-1 resize-none bg-transparent py-1 text-sm leading-5 outline-none [overflow-wrap:anywhere] placeholder:text-muted-foreground/60"
                 />
               </form>
             )}
@@ -218,7 +230,7 @@ function Body({
         )}
       </div>
 
-      <div className="flex items-center justify-between border-t px-5 py-3 text-xs text-muted-foreground">
+      <div className="flex items-center justify-between border-t px-5 py-3 text-xs text-muted-foreground sm:px-8">
         <span>Created {formatDate(item.created_at)}</span>
         {canManage && (
           <button
@@ -249,7 +261,11 @@ export function WorkItemSheet(props: WorkItemSheetProps) {
   const item = props.itemId ? props.items.find((i) => i.id === props.itemId) : undefined;
   return (
     <Sheet open={!!item} onOpenChange={(v) => !v && props.onClose()}>
-      <SheetContent side="right" showCloseButton={false} className="w-full gap-0 p-0 sm:max-w-lg">
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        className="gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:w-[max(50vw,38rem)] data-[side=right]:sm:max-w-[100vw]"
+      >
         {item && <Body key={item.id} {...props} item={item} />}
       </SheetContent>
     </Sheet>

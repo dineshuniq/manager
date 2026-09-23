@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 type Member = Profile & { member_role: ProjectMemberRole };
 
 const CHILD_TYPE: Record<WorkItemType, WorkItemType | null> = { STORY: "TASK", TASK: "SUBTASK", SUBTASK: null };
-const GRID = "grid grid-cols-[minmax(260px,1fr)_120px_110px_140px_130px_72px] items-center gap-3";
+const GRID = "grid grid-cols-[minmax(280px,1fr)_130px_110px_140px_130px_72px] items-start gap-3";
+const CELL = "flex min-h-7 items-center";
 const ROOT = "__root__";
 
 function QuickAdd({
@@ -44,20 +45,29 @@ function QuickAdd({
       }}
       className="overflow-hidden"
     >
-      <div className="flex items-center gap-2 border-b bg-brand/5 py-2 pr-4" style={{ paddingLeft: depth * 28 + 44 }}>
-        <TypeBadge type={type} compact />
-        <input
+      <div className="flex items-start gap-2 border-b bg-brand/5 py-2 pr-4" style={{ paddingLeft: depth * 28 + 44 }}>
+        <span className="flex h-7 shrink-0 items-center">
+          <TypeBadge type={type} compact />
+        </span>
+        <textarea
           autoFocus
+          rows={1}
           maxLength={200}
           value={value}
           disabled={busy}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => e.key === "Escape" && onCancel()}
+          onChange={(e) => setValue(e.target.value.replace(/\s*\n\s*/g, " "))}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onCancel();
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.currentTarget.form?.requestSubmit();
+            }
+          }}
           onBlur={() => !value && onCancel()}
           placeholder={`${type === "STORY" ? "Story" : type === "TASK" ? "Task" : "Subtask"} title — Enter to add, Esc to close`}
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
+          className="field-sizing-content min-h-7 flex-1 resize-none bg-transparent py-1 text-sm leading-5 outline-none [overflow-wrap:anywhere] placeholder:text-muted-foreground/70"
         />
-        <span className="hidden text-[11px] text-muted-foreground sm:inline">↵ Enter</span>
+        <span className="hidden h-7 items-center text-[11px] text-muted-foreground sm:flex">↵ Enter</span>
       </div>
     </motion.form>
   );
@@ -146,7 +156,7 @@ export function TreeView({
             item.type === "STORY" && "bg-surface/40"
           )}
         >
-          <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: depth * 28 }}>
+          <div className="flex min-w-0 items-start gap-2" style={{ paddingLeft: depth * 28 }}>
             {Array.from({ length: depth }).map((_, d) => (
               <span
                 key={d}
@@ -159,18 +169,20 @@ export function TreeView({
               <button
                 onClick={() => toggle(item.id)}
                 aria-label={isOpen ? "Collapse" : "Expand"}
-                className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <ChevronRight className={cn("size-4 transition-transform duration-200", isOpen && kids.length > 0 && "rotate-90")} />
               </button>
             ) : (
-              <CornerDownRight className="ml-1 size-3.5 shrink-0 text-muted-foreground/50" />
+              <CornerDownRight className="ml-1 mt-[7px] size-3.5 shrink-0 text-muted-foreground/50" />
             )}
-            <TypeBadge type={item.type} compact />
+            <span className="flex h-7 shrink-0 items-center">
+              <TypeBadge type={item.type} compact />
+            </span>
             <button
               onClick={() => setOpenId(item.id)}
               className={cn(
-                "min-w-0 truncate text-left text-sm transition-colors hover:text-brand",
+                "min-w-0 py-1 text-left text-sm leading-5 transition-colors [overflow-wrap:anywhere] hover:text-brand",
                 item.type === "STORY" && "font-semibold",
                 item.stage === "COMPLETED" && "text-muted-foreground line-through decoration-stage-done/60"
               )}
@@ -178,22 +190,28 @@ export function TreeView({
               {item.title}
             </button>
             {allKids.length > 0 && (
-              <span className="flex shrink-0 items-center gap-1 text-[11px] tabular-nums text-muted-foreground" title={`${done}/${allKids.length} complete`}>
+              <span className="flex h-7 shrink-0 items-center gap-1 text-[11px] tabular-nums text-muted-foreground" title={`${done}/${allKids.length} complete`}>
                 <ProgressRing done={done} total={allKids.length} size={15} />
                 {done}/{allKids.length}
               </span>
             )}
           </div>
 
-          <AssigneePicker
-            members={members}
-            value={item.assignee_id}
-            showName
-            disabled={!canEdit}
-            onChange={(assignee_id) => update(item.id, { assignee_id })}
-          />
-          <PriorityPicker value={item.priority} disabled={!canEdit} onChange={(priority) => update(item.id, { priority })} />
-          <StagePicker value={item.stage} disabled={!canEdit} canComplete={canManage} onChange={(stage) => update(item.id, { stage })} />
+          <div className={cn(CELL, "min-w-0")}>
+            <AssigneePicker
+              members={members}
+              value={item.assignee_id}
+              showName
+              disabled={!canEdit}
+              onChange={(assignee_id) => update(item.id, { assignee_id })}
+            />
+          </div>
+          <div className={CELL}>
+            <PriorityPicker value={item.priority} disabled={!canEdit} onChange={(priority) => update(item.id, { priority })} />
+          </div>
+          <div className={CELL}>
+            <StagePicker value={item.stage} disabled={!canEdit} canComplete={canManage} onChange={(stage) => update(item.id, { stage })} />
+          </div>
           <input
             type="date"
             value={item.due_date ?? ""}
@@ -206,7 +224,7 @@ export function TreeView({
               due === "soon" && "font-medium text-stage-review"
             )}
           />
-          <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+          <div className="flex min-h-7 items-center justify-end gap-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
             {canEdit && childType && (
               <button
                 title={`Add ${childType.toLowerCase()}`}
