@@ -302,3 +302,42 @@
   animation-duration: 0.35s;
   animation-timing-function: ease-out;
 }
+
+/* ---------------------------------------------------------------------------
+   Mobile-first foundations. Deliberately unlayered: unlayered rules outrank
+   every @layer, so they win over text-sm on inputs without !important.
+   --------------------------------------------------------------------------- */
+
+/* iOS Safari zooms the page when focusing an input with font-size < 16px. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+:root {
+  --bottom-nav-h: 4rem;
+}

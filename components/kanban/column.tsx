@@ -58,7 +58,7 @@ export function KanbanColumn({
   return (
     <div
       className={cn(
-        "flex w-[19rem] shrink-0 flex-col rounded-2xl border bg-muted/30 backdrop-blur-sm transition-all duration-300",
+        "flex w-[calc(100vw-3rem)] shrink-0 snap-start flex-col rounded-2xl border bg-muted/30 backdrop-blur-sm transition-all duration-300 sm:w-[19rem]",
         isOver && !blocked && cn("bg-muted/60 ring-2", s.ring),
         blocked && "opacity-60",
         blocked && isOver && "ring-2 ring-destructive/50"

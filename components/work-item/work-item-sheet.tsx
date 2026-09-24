@@ -74,7 +74,7 @@ function Body({
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="pt-safe flex h-full flex-col">
       <div className={cn("h-1 w-full shrink-0", STAGE_STYLES[item.stage].bar)} />
       <div className="flex items-center justify-between gap-2 border-b px-5 py-3 sm:px-8">
         <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
@@ -91,7 +91,7 @@ function Body({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:size-11 pointer-coarse:border"
         >
           <X className="size-4" />
         </button>
@@ -230,7 +230,7 @@ function Body({
         )}
       </div>
 
-      <div className="flex items-center justify-between border-t px-5 py-3 text-xs text-muted-foreground sm:px-8">
+      <div className="flex items-center justify-between border-t px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs text-muted-foreground sm:px-8">
         <span>Created {formatDate(item.created_at)}</span>
         {canManage && (
           <button

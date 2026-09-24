@@ -75,7 +75,7 @@ function MemberPicker({
         </div>
       </div>
 
-      <div className="mt-4 grid max-h-80 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+      <div className="mt-4 grid max-h-[22rem] grid-cols-1 gap-2 overflow-y-auto overscroll-contain pr-1 sm:max-h-80 sm:grid-cols-2">
         <AnimatePresence initial={false} mode="popLayout">
           {visible.map((u) => {
             const on = selected.has(u.id);
@@ -94,7 +94,7 @@ function MemberPicker({
                 aria-pressed={on}
                 title={locked ? "You manage projects you create" : undefined}
                 className={cn(
-                  "relative flex items-center gap-3 rounded-xl border p-2.5 text-left transition-colors",
+                  "relative flex min-h-14 items-center gap-3 rounded-xl border p-2.5 text-left transition-colors",
                   on ? "border-brand/50 bg-brand/8 ring-1 ring-brand/30" : "hover:border-foreground/15 hover:bg-muted/50",
                   locked && "cursor-default"
                 )}
@@ -253,14 +253,14 @@ export function NewProjectForm({ users, currentUserId }: { users: Profile[]; cur
         )}
       </AnimatePresence>
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="sticky bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] z-20 -mx-4 flex items-center justify-between gap-3 border-t bg-background/85 px-4 py-3 backdrop-blur-xl sm:static sm:mx-0 sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
         <p className="text-xs text-muted-foreground">
           {managers.size} manager{managers.size === 1 ? "" : "s"} · {developers.size} developer{developers.size === 1 ? "" : "s"}
         </p>
         <button
           type="submit"
           disabled={pending || !title.trim()}
-          className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-gradient-animated px-6 text-sm font-semibold text-white shadow-glow transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
+          className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand-gradient-animated px-6 text-sm font-semibold text-white shadow-glow transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none sm:h-11"
         >
           {pending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
           {pending ? "Creating project" : "Create project"}

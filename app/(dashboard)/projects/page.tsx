@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { STAGES, STAGE_LABELS, type Profile, type Project, type Stage } from "@/lib/types";
 import { AvatarStack, ProgressBar, STAGE_STYLES } from "@/components/shared/badges";
 import { cn } from "@/lib/utils";
+import { Fab } from "@/components/shell/fab";
 
 function hue(id: string) {
   let h = 0;
@@ -59,11 +60,11 @@ export default async function ProjectsPage() {
   const firstName = profile.name.split(" ")[0];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8 sm:py-10">
+    <div className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-8 sm:py-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between animate-fade-up">
         <div>
           <p className="text-sm text-muted-foreground">{greeting()},</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-4xl">
             <span className="text-gradient">{firstName}</span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">Here&apos;s what&apos;s moving across your projects.</p>
@@ -71,7 +72,7 @@ export default async function ProjectsPage() {
         {canCreateProject(profile) && (
           <Link
             href="/projects/new"
-            className="group inline-flex h-10 items-center gap-2 self-start rounded-xl bg-brand-gradient px-4 text-sm font-semibold text-white shadow-glow transition-all hover:brightness-110 active:scale-[0.98] sm:self-auto"
+            className="group hidden h-10 items-center gap-2 self-start rounded-xl bg-brand-gradient px-4 text-sm font-semibold text-white shadow-glow transition-all hover:brightness-110 active:scale-[0.98] sm:inline-flex sm:self-auto"
           >
             <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
             New project
@@ -79,21 +80,21 @@ export default async function ProjectsPage() {
         )}
       </div>
 
-      <div className="stagger mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="stagger mt-6 grid grid-cols-2 gap-2.5 sm:mt-8 sm:gap-3 lg:grid-cols-4">
         {tiles.map((t) => (
-          <div key={t.label} className="rounded-2xl border bg-card/70 p-4 backdrop-blur transition-all hover:-translate-y-0.5 hover:shadow-lift">
+          <div key={t.label} className="rounded-2xl border bg-card/70 p-3.5 backdrop-blur transition-all hover:-translate-y-0.5 hover:shadow-lift sm:p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-muted-foreground">{t.label}</p>
               <span className={cn("inline-flex size-7 items-center justify-center rounded-lg", t.cls)}>
                 <t.icon className="size-3.5" />
               </span>
             </div>
-            <p className="mt-3 text-2xl font-semibold tabular-nums tracking-tight">{t.value}</p>
+            <p className="mt-2 text-xl font-semibold tabular-nums tracking-tight sm:mt-3 sm:text-2xl">{t.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-10 flex items-center justify-between">
+      <div className="mt-8 flex items-center justify-between sm:mt-10">
         <h2 className="text-sm font-semibold">All projects</h2>
         <p className="text-xs text-muted-foreground">{projects?.length ?? 0} total</p>
       </div>
@@ -191,6 +192,8 @@ export default async function ProjectsPage() {
           );
         })}
       </div>
+
+      {canCreateProject(profile) && <Fab href="/projects/new" label="New project" />}
     </div>
   );
 }

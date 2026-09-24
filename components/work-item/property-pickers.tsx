@@ -8,10 +8,10 @@ import { PRIORITIES, STAGES, type Priority, type Profile, type Stage } from "@/l
 import { cn } from "@/lib/utils";
 
 const triggerCls =
-  "inline-flex items-center rounded-full outline-none transition-all hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none";
+  "inline-flex items-center rounded-full outline-none transition-all hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none pointer-coarse:min-h-9";
 
 const menuItemCls =
-  "flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent";
+  "flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent pointer-coarse:min-h-11";
 
 export function StagePicker({
   value,
@@ -92,12 +92,14 @@ export function AssigneePicker({
   onChange,
   disabled,
   showName = false,
+  nameClassName,
 }: {
   members: Profile[];
   value: string | null;
   onChange: (id: string | null) => void;
   disabled?: boolean;
   showName?: boolean;
+  nameClassName?: string;
 }) {
   const current = members.find((m) => m.id === value) ?? null;
   const [open, setOpen] = useState(false);
@@ -107,14 +109,14 @@ export function AssigneePicker({
         disabled={disabled}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "inline-flex min-w-0 max-w-full items-center gap-2 rounded-full outline-none transition-all hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none",
+          "inline-flex min-w-0 max-w-full items-center gap-2 rounded-full outline-none transition-all hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none pointer-coarse:min-h-9",
           showName && "rounded-lg px-1 py-0.5 hover:bg-accent"
         )}
         title={current ? current.name : "Unassigned"}
       >
-        <AssigneeAvatar profile={current} size={showName ? "sm" : "sm"} />
+        <AssigneeAvatar profile={current} size="sm" className="pointer-coarse:size-8" />
         {showName && (
-          <span className={cn("truncate text-sm", !current && "text-muted-foreground")}>{current?.name ?? "Unassigned"}</span>
+          <span className={cn("truncate text-sm", !current && "text-muted-foreground", nameClassName)}>{current?.name ?? "Unassigned"}</span>
         )}
       </PopoverTrigger>
       <PopoverContent className="w-60 p-1" align="start" onClick={(e) => e.stopPropagation()}>

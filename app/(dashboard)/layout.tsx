@@ -23,7 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="absolute -top-20 right-0 size-[28rem] rounded-full bg-brand-2/8 blur-[120px]" />
       </div>
       <AppSidebar profile={profile} projects={projects ?? []} />
-      <main className="min-w-0 flex-1">{children}</main>
+      <main className="min-w-0 flex-1 pb-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
     </div>
   );
 }

@@ -8,13 +8,16 @@ import { useWorkItems } from "@/lib/use-work-items";
 import { ProgressRing, TypeBadge } from "@/components/shared/badges";
 import { AssigneePicker, PriorityPicker, StagePicker, dueDateState } from "@/components/work-item/property-pickers";
 import { WorkItemSheet } from "@/components/work-item/work-item-sheet";
+import { Fab } from "@/components/shell/fab";
 import { cn } from "@/lib/utils";
 
 type Member = Profile & { member_role: ProjectMemberRole };
 
 const CHILD_TYPE: Record<WorkItemType, WorkItemType | null> = { STORY: "TASK", TASK: "SUBTASK", SUBTASK: null };
-const GRID = "grid grid-cols-[minmax(280px,1fr)_130px_110px_140px_130px_72px] items-start gap-3";
-const CELL = "flex min-h-7 items-center";
+const GRID = "xl:grid xl:grid-cols-[minmax(280px,1fr)_130px_110px_140px_130px_72px] xl:items-start xl:gap-3";
+const CELL = "flex min-h-7 items-center pointer-coarse:min-h-9";
+// Tree indentation per level: tighter on phones.
+const INDENT = "pl-[calc(var(--depth)*14px)] xl:pl-[calc(var(--depth)*28px)]";
 const ROOT = "__root__";
 
 function QuickAdd({
@@ -45,7 +48,10 @@ function QuickAdd({
       }}
       className="overflow-hidden"
     >
-      <div className="flex items-start gap-2 border-b bg-brand/5 py-2 pr-4" style={{ paddingLeft: depth * 28 + 44 }}>
+      <div
+        className="flex items-start gap-2 border-b bg-brand/5 py-2 pl-[calc(var(--depth)*14px+2.75rem)] pr-4 xl:pl-[calc(var(--depth)*28px+2.75rem)]"
+        style={{ "--depth": depth } as React.CSSProperties}
+      >
         <span className="flex h-7 shrink-0 items-center">
           <TypeBadge type={type} compact />
         </span>
@@ -152,24 +158,24 @@ export function TreeView({
         <div
           className={cn(
             GRID,
-            "group relative border-b px-4 py-2 transition-colors hover:bg-accent/40",
+            "group relative flex flex-col gap-1.5 border-b px-4 py-3 transition-colors hover:bg-accent/40 xl:py-2",
             item.type === "STORY" && "bg-surface/40"
           )}
         >
-          <div className="flex min-w-0 items-start gap-2" style={{ paddingLeft: depth * 28 }}>
+          <div className={cn("flex min-w-0 items-start gap-2", INDENT)} style={{ "--depth": depth } as React.CSSProperties}>
             {Array.from({ length: depth }).map((_, d) => (
               <span
                 key={d}
                 aria-hidden
-                className="absolute inset-y-0 w-px bg-border"
-                style={{ left: 16 + d * 28 + 11 }}
+                className="absolute inset-y-0 left-[calc(1rem+var(--g)*14px+11px)] w-px bg-border xl:left-[calc(1rem+var(--g)*28px+11px)]"
+                style={{ "--g": d } as React.CSSProperties}
               />
             ))}
             {childType ? (
               <button
                 onClick={() => toggle(item.id)}
                 aria-label={isOpen ? "Collapse" : "Expand"}
-                className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:-m-1.5 pointer-coarse:mt-[-4px] pointer-coarse:size-9"
               >
                 <ChevronRight className={cn("size-4 transition-transform duration-200", isOpen && kids.length > 0 && "rotate-90")} />
               </button>
@@ -182,7 +188,7 @@ export function TreeView({
             <button
               onClick={() => setOpenId(item.id)}
               className={cn(
-                "min-w-0 py-1 text-left text-sm leading-5 transition-colors [overflow-wrap:anywhere] hover:text-brand",
+                "min-w-0 flex-1 py-1 text-left text-sm leading-5 transition-colors [overflow-wrap:anywhere] hover:text-brand",
                 item.type === "STORY" && "font-semibold",
                 item.stage === "COMPLETED" && "text-muted-foreground line-through decoration-stage-done/60"
               )}
@@ -197,11 +203,18 @@ export function TreeView({
             )}
           </div>
 
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-x-2 gap-y-1 pl-[calc(var(--depth)*14px+2rem)] xl:contents",
+            )}
+            style={{ "--depth": depth } as React.CSSProperties}
+          >
           <div className={cn(CELL, "min-w-0")}>
             <AssigneePicker
               members={members}
               value={item.assignee_id}
               showName
+              nameClassName="hidden xl:inline"
               disabled={!canEdit}
               onChange={(assignee_id) => update(item.id, { assignee_id })}
             />
@@ -218,13 +231,13 @@ export function TreeView({
             disabled={!canEdit}
             onChange={(e) => update(item.id, { due_date: e.target.value || null })}
             className={cn(
-              "h-7 w-full rounded-lg border border-transparent bg-transparent px-1.5 text-xs outline-none transition-colors hover:border-input focus:border-brand/50",
-              !item.due_date && "text-muted-foreground/60",
+              "h-7 w-[8.5rem] rounded-lg border border-transparent bg-transparent px-1.5 text-xs outline-none transition-colors hover:border-input focus:border-brand/50 pointer-coarse:h-9 xl:w-full",
+              !item.due_date && "hidden text-muted-foreground/60 xl:block",
               due === "overdue" && "font-medium text-destructive",
               due === "soon" && "font-medium text-stage-review"
             )}
           />
-          <div className="flex min-h-7 items-center justify-end gap-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+          <div className="ml-auto flex min-h-7 items-center justify-end gap-0.5 transition-opacity xl:ml-0 pointer-fine:opacity-0 pointer-fine:group-focus-within:opacity-100 pointer-fine:group-hover:opacity-100">
             {canEdit && childType && (
               <button
                 title={`Add ${childType.toLowerCase()}`}
@@ -236,7 +249,7 @@ export function TreeView({
                     return next;
                   });
                 }}
-                className="inline-flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand"
+                className="inline-flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand pointer-coarse:size-9 pointer-coarse:border pointer-coarse:bg-surface/60"
               >
                 <Plus className="size-4" />
               </button>
@@ -245,11 +258,12 @@ export function TreeView({
               <button
                 title="Delete"
                 onClick={() => remove(item.id)}
-                className="inline-flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                className="hidden size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive pointer-fine:inline-flex"
               >
                 <Trash2 className="size-3.5" />
               </button>
             )}
+          </div>
           </div>
         </div>
 
@@ -284,45 +298,50 @@ export function TreeView({
   const parentIds = items.filter((i) => i.type !== "SUBTASK").map((i) => i.id);
 
   return (
-    <div className="px-4 py-4 sm:px-6">
+    <div className="px-4 pb-28 pt-4 sm:px-6 md:pb-8">
       <div className="mb-3 flex flex-wrap items-center gap-2.5">
-        <div className="group relative">
+        <div className="group relative min-w-0 flex-1 sm:flex-none">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-brand" />
           <input
+            type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Filter by title"
-            className="h-9 w-56 rounded-xl border border-input bg-surface/60 pl-9 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:w-64 focus:border-brand/50 focus:ring-4 focus:ring-brand/10"
+            className="h-10 w-full rounded-xl border border-input bg-surface/60 pl-9 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-brand/50 focus:ring-4 focus:ring-brand/10 sm:h-9 sm:w-56 sm:focus:w-64 [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
-        <div className="flex h-9 items-center rounded-xl border bg-surface/60 p-1">
+        <div className="flex h-10 items-center rounded-xl border bg-surface/60 p-1 sm:h-9">
           <button
             onClick={() => setCollapsed(new Set())}
+            aria-label="Expand all"
+            title="Expand all"
             className="inline-flex h-full items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
-            <ChevronsUpDown className="size-3.5" /> Expand all
+            <ChevronsUpDown className="size-4 sm:size-3.5" /> <span className="hidden sm:inline">Expand all</span>
           </button>
           <button
             onClick={() => setCollapsed(new Set(parentIds))}
+            aria-label="Collapse all"
+            title="Collapse all"
             className="inline-flex h-full items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
-            <ChevronsDownUp className="size-3.5" /> Collapse all
+            <ChevronsDownUp className="size-4 sm:size-3.5" /> <span className="hidden sm:inline">Collapse all</span>
           </button>
         </div>
-        <span className="ml-auto text-xs tabular-nums text-muted-foreground">{items.length} items</span>
+        <span className="w-full text-xs tabular-nums text-muted-foreground sm:ml-auto sm:w-auto">{items.length} items</span>
         {canManage && (
           <button
             onClick={() => setAdding(ROOT)}
-            className="group inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-gradient px-3.5 text-sm font-semibold text-white shadow-glow transition-all hover:brightness-110 active:scale-[0.97]"
+            className="group hidden h-9 items-center gap-1.5 rounded-xl bg-brand-gradient px-3.5 text-sm font-semibold text-white shadow-glow transition-all hover:brightness-110 active:scale-[0.97] md:inline-flex"
           >
             <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" /> New story
           </button>
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border bg-card/60 shadow-sm backdrop-blur">
-        <div className="min-w-[900px]">
-          <div className={cn(GRID, "sticky top-0 border-b bg-muted/50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground")}>
+      <div className="overflow-hidden rounded-2xl border bg-card/60 shadow-sm backdrop-blur xl:overflow-x-auto">
+        <div className="xl:min-w-[900px]">
+          <div className={cn(GRID, "hidden border-b bg-muted/50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground xl:grid")}>
             <span className="pl-8">Work item</span>
             <span>Assignee</span>
             <span>Priority</span>
@@ -388,6 +407,8 @@ export function TreeView({
         onDelete={remove}
         onCreateChild={create}
       />
+
+      {canManage && !openId && adding !== ROOT && <Fab label="New story" onClick={() => setAdding(ROOT)} />}
     </div>
   );
 }

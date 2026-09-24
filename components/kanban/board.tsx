@@ -19,6 +19,10 @@ import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { STAGES, STAGE_LABELS, type Profile, type ProjectMemberRole, type Stage, type WorkItem } from "@/lib/types";
+import { STAGE_STYLES } from "@/components/shared/badges";
+import { Fab } from "@/components/shell/fab";
+import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
 import { useWorkItems } from "@/lib/use-work-items";
 import { WorkItemSheet } from "@/components/work-item/work-item-sheet";
 import { KanbanColumn } from "./column";
@@ -49,6 +53,8 @@ export function KanbanBoard({
   const [celebrate, setCelebrate] = useState(0);
   const [creating, setCreating] = useState(false);
   const snapshot = useRef<WorkItem[] | null>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [visibleIndex, setVisibleIndex] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -174,6 +180,22 @@ export function KanbanBoard({
 
   const activeItem = activeId ? items.find((i) => i.id === activeId) : null;
 
+  // Mobile: which column is snapped into view, so the stage switcher can track swipes.
+  function handleScroll() {
+    const el = scrollerRef.current;
+    const first = el?.firstElementChild as HTMLElement | null;
+    if (!el || !first) return;
+    const step = first.offsetWidth + 16;
+    const idx = Math.min(STAGES.length - 1, Math.max(0, Math.round(el.scrollLeft / step)));
+    if (idx !== visibleIndex) setVisibleIndex(idx);
+  }
+
+  function jumpTo(idx: number) {
+    const col = scrollerRef.current?.children[idx] as HTMLElement | undefined;
+    col?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+    setVisibleIndex(idx);
+  }
+
   async function newStory() {
     setCreating(true);
     const created = await create(null, "STORY", "Untitled story");
@@ -188,7 +210,7 @@ export function KanbanBoard({
           <button
             onClick={newStory}
             disabled={creating}
-            className="group inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-gradient px-3.5 text-sm font-semibold text-white shadow-glow transition-all hover:brightness-110 active:scale-[0.97] disabled:opacity-70"
+            className="group hidden h-9 items-center gap-1.5 rounded-xl bg-brand-gradient px-3.5 text-sm font-semibold text-white shadow-glow transition-all hover:brightness-110 active:scale-[0.97] disabled:opacity-70 md:inline-flex"
           >
             {creating ? (
               <Loader2 className="size-4 animate-spin" />
@@ -200,6 +222,39 @@ export function KanbanBoard({
         )}
       </FilterBar>
 
+      {/* Mobile stage switcher: one column at a time, swipe or tap to change */}
+      <div className="sticky top-[calc(6.5rem+env(safe-area-inset-top)+1px)] z-10 bg-background/80 px-4 pb-2 pt-1 backdrop-blur-xl sm:hidden">
+        <div className="grid grid-cols-4 gap-1 rounded-2xl border bg-surface/60 p-1">
+          {STAGES.map((stage, i) => {
+            const on = i === visibleIndex;
+            return (
+              <button
+                key={stage}
+                type="button"
+                onClick={() => jumpTo(i)}
+                aria-pressed={on}
+                className="relative flex min-h-12 flex-col items-center justify-center rounded-xl px-1"
+              >
+                {on && (
+                  <motion.span
+                    layoutId="stage-switcher-active"
+                    className="absolute inset-0 rounded-xl bg-accent ring-1 ring-brand/15"
+                    transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                  />
+                )}
+                <span className="relative flex items-center gap-1 text-sm font-semibold tabular-nums">
+                  <span className={cn("size-1.5 rounded-full", STAGE_STYLES[stage].dot)} />
+                  {columns.get(stage)!.length}
+                </span>
+                <span className={cn("relative truncate text-[10px] font-medium", on ? "text-foreground" : "text-muted-foreground")}>
+                  {STAGE_LABELS[stage]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <DndContext
         id={`board-${projectId}`}
         sensors={sensors}
@@ -209,7 +264,14 @@ export function KanbanBoard({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex flex-1 gap-4 overflow-x-auto px-4 pb-8 pt-1 sm:px-6">
+        <div
+          ref={scrollerRef}
+          onScroll={handleScroll}
+          className={cn(
+            "no-scrollbar flex flex-1 gap-4 overflow-x-auto overscroll-x-contain px-4 pb-28 pt-1 sm:px-6 md:pb-8",
+            activeId ? "snap-none" : "snap-x snap-mandatory scroll-px-4 sm:snap-none"
+          )}
+        >
           {STAGES.map((stage) => (
             <KanbanColumn
               key={stage}
@@ -247,6 +309,8 @@ export function KanbanBoard({
         onDelete={remove}
         onCreateChild={create}
       />
+
+      {canManage && !openId && <Fab label="New story" onClick={newStory} busy={creating} />}
     </div>
   );
 }

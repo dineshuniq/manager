@@ -20,7 +20,7 @@ export default async function NewProjectPage() {
     .order("name");
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8 sm:py-10">
+    <div className="mx-auto max-w-3xl px-4 pb-6 pt-6 sm:px-8 sm:py-10">
       <Link
         href="/projects"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -28,7 +28,7 @@ export default async function NewProjectPage() {
         <ArrowLeft className="size-4" /> Projects
       </Link>
       <div className="mt-4 animate-fade-up">
-        <h1 className="text-3xl font-semibold tracking-tight">New project</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">New project</h1>
         <p className="mt-1 text-sm text-muted-foreground">Name it, describe it, and pick your team.</p>
       </div>
       <NewProjectForm users={(users as Profile[]) ?? []} currentUserId={profile.id} />

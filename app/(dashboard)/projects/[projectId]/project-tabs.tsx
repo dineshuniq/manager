@@ -15,7 +15,7 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
   ];
 
   return (
-    <div className="mt-4 flex gap-1 px-4 sm:px-6">
+    <div className="flex gap-1 px-4 sm:px-6 md:mt-4">
       {tabs.map((tab) => {
         const active = pathname?.startsWith(tab.href);
         return (
@@ -23,7 +23,7 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "relative inline-flex items-center gap-2 px-3 pb-3 pt-1 text-sm font-medium transition-colors",
+              "relative inline-flex min-h-12 flex-1 items-center justify-center gap-2 px-3 text-sm font-medium transition-colors md:min-h-0 md:flex-none md:pb-3 md:pt-1",
               active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >

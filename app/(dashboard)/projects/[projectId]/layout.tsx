@@ -39,27 +39,29 @@ export default async function ProjectLayout({
 
   return (
     <div className="flex min-h-svh flex-col md:min-h-svh">
-      <div className="glass sticky top-14 z-20 border-b md:top-0">
-        <div className="px-4 pt-5 sm:px-6">
+      {/* Mobile: only the tab bar sticks (display: contents lets it stick to the page).
+          Desktop: the whole header sticks. */}
+      <div className="contents md:sticky md:top-0 md:z-20 md:block md:border-b md:bg-background/70 md:backdrop-blur-xl">
+        <div className="px-4 pt-3 sm:px-6 md:pt-5">
           <nav className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Link href="/projects" className="transition-colors hover:text-foreground">
+            <Link href="/projects" className="-my-1 py-1 transition-colors hover:text-foreground">
               Projects
             </Link>
             <ChevronRight className="size-3" />
             <span className="truncate text-foreground">{project.title}</span>
           </nav>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 md:mt-3">
             <div className="flex min-w-0 items-center gap-3 animate-fade-up">
               <span
-                className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-sm"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-sm sm:size-11"
                 style={{ background: `linear-gradient(135deg, oklch(0.68 0.18 ${h}), oklch(0.55 0.2 ${(h + 45) % 360}))` }}
               >
                 {project.title.slice(0, 1).toUpperCase()}
               </span>
               <div className="min-w-0">
-                <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">{project.title}</h1>
+                <h1 className="truncate text-lg font-semibold tracking-tight sm:text-2xl">{project.title}</h1>
                 {project.description && (
-                  <p className="truncate text-sm text-muted-foreground">{project.description}</p>
+                  <p className="hidden truncate text-sm text-muted-foreground sm:block">{project.description}</p>
                 )}
               </div>
             </div>
@@ -80,7 +82,9 @@ export default async function ProjectLayout({
             </div>
           </div>
         </div>
-        <ProjectTabs projectId={projectId} />
+        <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 mt-3 border-b bg-background/80 backdrop-blur-xl md:static md:mt-0 md:border-0 md:bg-transparent md:backdrop-blur-none">
+          <ProjectTabs projectId={projectId} />
+        </div>
       </div>
       <div className="flex-1">{children}</div>
     </div>

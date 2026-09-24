@@ -159,7 +159,7 @@ function CreateUserDialog({ roles }: { roles: Role[] }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className="group inline-flex h-10 items-center gap-2 rounded-xl bg-brand-gradient px-4 text-sm font-semibold text-white shadow-glow transition-all hover:brightness-110 active:scale-[0.98]">
+      <DialogTrigger className="group fixed bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+1rem)] right-4 z-30 inline-flex h-14 items-center gap-2 rounded-2xl bg-brand-gradient pl-4 pr-5 text-sm font-semibold text-white shadow-glow transition-all hover:brightness-110 active:scale-[0.98] md:static md:h-10 md:rounded-xl md:px-4">
         <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" /> Add user
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -171,7 +171,7 @@ function CreateUserDialog({ roles }: { roles: Role[] }) {
           <Field label="Full name" htmlFor="name">
             <input id="name" name="name" required placeholder="Jane Doe" className={fieldCls} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             <Field label="Username" htmlFor="username">
               <input id="username" name="username" required placeholder="jane" className={fieldCls} />
             </Field>
@@ -381,38 +381,39 @@ export function UsersTable({ users: serverUsers, actor }: { users: Profile[]; ac
   }
 
   return (
-    <div className="mt-8 space-y-6">
+    <div className="mt-6 space-y-5 pb-24 md:mt-8 md:space-y-6 md:pb-0">
       <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
         {tiles.map((t) => (
-          <div key={t.label} className="rounded-2xl border bg-card/70 p-4 backdrop-blur transition-all hover:-translate-y-0.5 hover:shadow-lift">
+          <div key={t.label} className="rounded-2xl border bg-card/70 p-3.5 backdrop-blur transition-all hover:-translate-y-0.5 hover:shadow-lift sm:p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-muted-foreground">{t.label}</p>
               <span className={cn("inline-flex size-7 items-center justify-center rounded-lg", t.cls)}>
                 <t.icon className="size-3.5" />
               </span>
             </div>
-            <p className="mt-3 text-2xl font-semibold tabular-nums">{t.value}</p>
+            <p className="mt-2 text-xl font-semibold tabular-nums sm:mt-3 sm:text-2xl">{t.value}</p>
           </div>
         ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5">
-        <div className="group relative">
+        <div className="group relative min-w-0 flex-1 sm:flex-none">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-brand" />
           <input
+            type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search people"
-            className="h-10 w-56 rounded-xl border border-input bg-surface/60 pl-9 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:w-64 focus:border-brand/50 focus:ring-4 focus:ring-brand/10"
+            className="h-10 w-full rounded-xl border border-input bg-surface/60 pl-9 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-brand/50 focus:ring-4 focus:ring-brand/10 sm:w-56 sm:focus:w-64 [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
-        <div className="flex h-10 items-center rounded-xl border bg-surface/60 p-1">
+        <div className="no-scrollbar flex h-10 w-full items-center overflow-x-auto rounded-xl border bg-surface/60 p-1 sm:w-auto">
           {ROLE_FILTERS.map((r) => (
             <button
               key={r.value}
               onClick={() => setRole(r.value)}
               className={cn(
-                "relative h-full rounded-lg px-3 text-xs font-medium transition-colors",
+                "relative h-full flex-1 whitespace-nowrap rounded-lg px-3 text-xs font-medium transition-colors sm:flex-none",
                 role === r.value ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -427,113 +428,117 @@ export function UsersTable({ users: serverUsers, actor }: { users: Profile[]; ac
             </button>
           ))}
         </div>
-        <div className="ml-auto">
+        <div className="md:ml-auto">
           <CreateUserDialog roles={assignableRoles(actor)} />
         </div>
       </div>
 
+      {/* Phones: stacked person cards. md+: a 5-column table. Same markup, grid re-flows. */}
       <div className="overflow-hidden rounded-2xl border bg-card/70 shadow-sm backdrop-blur">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                <th className="px-5 py-3">Person</th>
-                <th className="px-5 py-3">Role</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Joined</th>
-                <th className="w-12 px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              <AnimatePresence initial={false}>
-                {filtered.map((u, i) => (
-                  <motion.tr
-                    key={u.id}
-                    layout
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03 } }}
-                    exit={{ opacity: 0 }}
-                    className={cn("group border-b transition-colors last:border-0 hover:bg-accent/40", u.status === "INACTIVE" && "opacity-60")}
-                  >
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <AssigneeAvatar profile={u} size="md" className={cn(u.status === "INACTIVE" && "grayscale")} />
-                        <div className="min-w-0">
-                          <p className="flex items-center gap-1.5 truncate font-medium">
-                            {u.name}
-                            {u.id === actor.id && (
-                              <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">You</span>
-                            )}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            @{u.username}
-                            {u.email && ` · ${u.email}`}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <RoleSwap user={u} actor={actor} onSwap={(r) => swapRole(u, r)} />
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className="inline-flex items-center gap-2 text-xs font-medium">
-                        <span className="relative flex size-2">
-                          {u.status === "ACTIVE" && (
-                            <span className="absolute inline-flex size-full animate-ping rounded-full bg-stage-done opacity-50" />
-                          )}
-                          <span className={cn("relative inline-flex size-2 rounded-full", u.status === "ACTIVE" ? "bg-stage-done" : "bg-muted-foreground/50")} />
-                        </span>
-                        {u.status === "ACTIVE" ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-xs text-muted-foreground">
-                      {formatDate(u.created_at)}
-                    </td>
-                    <td className="px-5 py-3">
-                      {!canEditUser(actor, u) ? (
-                        <span
-                          title="Admin accounts are managed by System Admins"
-                          className="inline-flex size-8 items-center justify-center text-muted-foreground/50"
-                        >
-                          <Lock className="size-3.5" />
-                        </span>
-                      ) : (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-                          {busyId === u.id ? <Loader2 className="size-4 animate-spin" /> : <MoreHorizontal className="size-4" />}
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem onClick={() => setEditing(u)}>
-                            <Pencil className="size-4" /> Edit details
-                          </DropdownMenuItem>
-                          {u.id === actor.id ? (
-                            <DropdownMenuItem onClick={() => setChangingOwn(true)}>
-                              <KeyRound className="size-4" /> Change password
-                            </DropdownMenuItem>
-                          ) : (
-                            canResetPassword(actor, u) && (
-                              <DropdownMenuItem onClick={() => setResetting(u)}>
-                                <KeyRound className="size-4" /> Reset password
-                              </DropdownMenuItem>
-                            )
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            disabled={!canChangeStatus(actor, u)}
-                            variant={u.status === "ACTIVE" ? "destructive" : "default"}
-                            onClick={() => toggleStatus(u)}
-                          >
-                            <Power className="size-4" /> {u.status === "ACTIVE" ? "Deactivate" : "Reactivate"}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+        <div className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_110px_120px_48px] items-center gap-4 border-b bg-muted/50 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:grid">
+          <span>Person</span>
+          <span>Role</span>
+          <span>Status</span>
+          <span>Joined</span>
+          <span />
+        </div>
+        <div role="list">
+          <AnimatePresence initial={false}>
+            {filtered.map((u, i) => (
+              <motion.div
+                key={u.id}
+                role="listitem"
+                layout
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0, transition: { delay: Math.min(i, 10) * 0.03 } }}
+                exit={{ opacity: 0 }}
+                className={cn(
+                  "group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2.5 border-b px-4 py-3.5 transition-colors last:border-0 hover:bg-accent/40",
+                  "md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_110px_120px_48px] md:gap-4 md:px-5 md:py-3",
+                  u.status === "INACTIVE" && "opacity-60"
+                )}
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <AssigneeAvatar profile={u} size="md" className={cn("pointer-coarse:size-10", u.status === "INACTIVE" && "grayscale")} />
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                      <span className="truncate">{u.name}</span>
+                      {u.id === actor.id && (
+                        <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">You</span>
                       )}
-                    </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            </tbody>
-          </table>
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      @{u.username}
+                      {u.email && ` · ${u.email}`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="order-3 flex items-center md:order-none">
+                  <RoleSwap user={u} actor={actor} onSwap={(r) => swapRole(u, r)} />
+                </div>
+
+                <div className="order-4 flex items-center justify-end md:order-none md:justify-start">
+                  <span className="inline-flex items-center gap-2 text-xs font-medium">
+                    <span className="relative flex size-2">
+                      {u.status === "ACTIVE" && (
+                        <span className="absolute inline-flex size-full animate-ping rounded-full bg-stage-done opacity-50" />
+                      )}
+                      <span className={cn("relative inline-flex size-2 rounded-full", u.status === "ACTIVE" ? "bg-stage-done" : "bg-muted-foreground/50")} />
+                    </span>
+                    {u.status === "ACTIVE" ? "Active" : "Inactive"}
+                  </span>
+                </div>
+
+                <div className="hidden text-xs text-muted-foreground md:block">{formatDate(u.created_at)}</div>
+
+                <div className="order-2 flex justify-end md:order-none">
+                  {!canEditUser(actor, u) ? (
+                    <span
+                      title="Admin accounts are managed by System Admins"
+                      className="inline-flex size-10 items-center justify-center text-muted-foreground/50 md:size-8"
+                    >
+                      <Lock className="size-3.5" />
+                    </span>
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        aria-label={`Actions for ${u.name}`}
+                        className="inline-flex size-10 items-center justify-center rounded-xl border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:size-8 md:rounded-lg md:border-0"
+                      >
+                        {busyId === u.id ? <Loader2 className="size-4 animate-spin" /> : <MoreHorizontal className="size-4" />}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => setEditing(u)} className="pointer-coarse:py-2.5">
+                          <Pencil className="size-4" /> Edit details
+                        </DropdownMenuItem>
+                        {u.id === actor.id ? (
+                          <DropdownMenuItem onClick={() => setChangingOwn(true)} className="pointer-coarse:py-2.5">
+                            <KeyRound className="size-4" /> Change password
+                          </DropdownMenuItem>
+                        ) : (
+                          canResetPassword(actor, u) && (
+                            <DropdownMenuItem onClick={() => setResetting(u)} className="pointer-coarse:py-2.5">
+                              <KeyRound className="size-4" /> Reset password
+                            </DropdownMenuItem>
+                          )
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          disabled={!canChangeStatus(actor, u)}
+                          variant={u.status === "ACTIVE" ? "destructive" : "default"}
+                          onClick={() => toggleStatus(u)}
+                          className="pointer-coarse:py-2.5"
+                        >
+                          <Power className="size-4" /> {u.status === "ACTIVE" ? "Deactivate" : "Reactivate"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
           {filtered.length === 0 && (
             <p className="py-12 text-center text-sm text-muted-foreground">No one matches that search.</p>
           )}
