@@ -5,7 +5,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { canCreateProject } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 import { STAGES, STAGE_LABELS, type Profile, type Project, type Stage } from "@/lib/types";
-import { AvatarStack, ProgressBar, STAGE_STYLES } from "@/components/shared/badges";
+import { AssigneeAvatar, AvatarStack, ProgressBar, STAGE_STYLES } from "@/components/shared/badges";
 import { cn } from "@/lib/utils";
 import { Fab } from "@/components/shell/fab";
 
@@ -29,9 +29,9 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
 
   const supabase = await createClient();
   const [{ data: projects }, { data: items }, { data: memberRows }] = await Promise.all([
-    supabase.from("projects").select("*").order("created_at", { ascending: false }),
+    supabase.from("projects").select("*, owner:profiles!created_by(id, name, username)").order("created_at", { ascending: false }),
     supabase.from("work_items").select("project_id, stage"),
-    supabase.from("project_members").select("project_id, profile:profiles(id, name)"),
+    supabase.from("project_members").select("project_id, member_role, profile:profiles(id, name)"),
   ]);
 
   const stats = new Map<string, Record<Stage, number>>();
@@ -41,9 +41,15 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
     stats.set(it.project_id, s);
   }
   const members = new Map<string, Pick<Profile, "id" | "name">[]>();
+  // Fallback "owner" for projects whose creator account was deleted.
+  const firstManager = new Map<string, Pick<Profile, "id" | "name">>();
   for (const m of memberRows ?? []) {
     const list = members.get(m.project_id) ?? [];
-    if (m.profile) list.push(m.profile as unknown as Pick<Profile, "id" | "name">);
+    const person = m.profile as unknown as Pick<Profile, "id" | "name"> | null;
+    if (person) {
+      list.push(person);
+      if (m.member_role === "MANAGER" && !firstManager.has(m.project_id)) firstManager.set(m.project_id, person);
+    }
     members.set(m.project_id, list);
   }
 
@@ -197,6 +203,19 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
                 )}
               </div>
               <h3 className="relative mt-4 line-clamp-1 font-semibold tracking-tight">{project.title}</h3>
+              {(() => {
+                const owner = project.owner ?? firstManager.get(project.id) ?? null;
+                if (!owner) return null;
+                return (
+                  <p className="relative mt-1.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                    <AssigneeAvatar profile={owner} size="xs" className="ring-0" />
+                    <span className="truncate">
+                      {project.owner ? "Owner" : "Managed by"}{" "}
+                      <span className="font-medium text-foreground">{owner.id === profile.id ? "You" : owner.name}</span>
+                    </span>
+                  </p>
+                );
+              })()}
               <p className="relative mt-1 line-clamp-2 min-h-10 text-sm text-muted-foreground">
                 {project.description || "No description yet."}
               </p>

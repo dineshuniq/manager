@@ -21,7 +21,7 @@ export const getProjectContext = cache(async function getProjectContext(projectI
 
   const { data: project } = await supabase
     .from("projects")
-    .select("*")
+    .select("*, owner:profiles!created_by(id, name, username)")
     .eq("id", projectId)
     .maybeSingle();
 

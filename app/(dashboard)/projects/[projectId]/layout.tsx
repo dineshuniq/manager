@@ -3,9 +3,11 @@ import { ChevronRight, Eye } from "lucide-react";
 import { getProjectContext } from "@/lib/data/project";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
-import { AvatarStack, ProgressRing } from "@/components/shared/badges";
+import { AssigneeAvatar, AvatarStack, ProgressRing } from "@/components/shared/badges";
 import { ProjectTabs } from "./project-tabs";
 import { MembersDialog } from "./members-dialog";
+import { DeleteProjectDialog } from "./delete-project-dialog";
+import { canDeleteProject } from "@/lib/rbac";
 
 function hue(id: string) {
   let h = 0;
@@ -21,10 +23,14 @@ export default async function ProjectLayout({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const { project, members, memberRole, workItems } = await getProjectContext(projectId);
+  const { project, members, memberRole, workItems, profile } = await getProjectContext(projectId);
 
   const canManage = memberRole === "ADMIN" || memberRole === "MANAGER";
   const readOnly = memberRole === null;
+  const canDelete = canDeleteProject(profile, project);
+  const owner = project.owner ?? members.find((m) => m.member_role === "MANAGER") ?? null;
+  const ownerLabel = project.owner ? "Owner" : "Managed by";
+  const ownerName = owner ? (owner.id === profile.id ? "You" : owner.name) : null;
 
   let allUsers: Profile[] = [];
   if (canManage) {
@@ -61,6 +67,14 @@ export default async function ProjectLayout({
               </span>
               <div className="min-w-0">
                 <h1 className="truncate text-lg font-semibold tracking-tight sm:text-2xl">{project.title}</h1>
+                {owner && (
+                  <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                    <AssigneeAvatar profile={owner} size="xs" className="ring-0" />
+                    <span className="truncate">
+                      {ownerLabel} <span className="font-medium text-foreground">{ownerName}</span>
+                    </span>
+                  </p>
+                )}
                 {project.description && (
                   <p className="hidden truncate text-sm text-muted-foreground sm:block">{project.description}</p>
                 )}
@@ -88,6 +102,14 @@ export default async function ProjectLayout({
                 </div>
               )}
               {canManage && <MembersDialog projectId={projectId} members={members} allUsers={allUsers} />}
+              {canDelete && (
+                <DeleteProjectDialog
+                  projectId={projectId}
+                  title={project.title}
+                  itemCount={workItems.length}
+                  memberCount={members.length}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -100,7 +122,15 @@ export default async function ProjectLayout({
           <Eye className="mt-px size-4 shrink-0 text-stage-review" />
           <p>
             <span className="font-semibold text-foreground">You&apos;re viewing this project read-only.</span> You can browse
-            its stories and tasks, but only its members can make changes. Ask one of its managers to add you.
+            its stories and tasks, but only its members can make changes.{" "}
+            {owner ? (
+              <>
+                Ask <span className="font-medium text-foreground">{owner.name}</span>
+                {project.owner ? " (owner)" : ""} or another project manager to add you.
+              </>
+            ) : (
+              "Ask one of its managers to add you."
+            )}
           </p>
         </div>
       )}

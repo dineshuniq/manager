@@ -33,6 +33,8 @@ export interface Project {
   description: string | null;
   created_by: string | null;
   created_at: string;
+  // The creator; null when that account has since been deleted.
+  owner?: Pick<Profile, "id" | "name" | "username"> | null;
 }
 
 export interface ProjectMember {

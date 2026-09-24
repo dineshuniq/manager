@@ -4,6 +4,13 @@ export function isAdmin(profile: Pick<Profile, "role"> | null | undefined) {
   return profile?.role === "ADMIN";
 }
 
+export function canDeleteProject(
+  profile: Pick<Profile, "id" | "role"> | null | undefined,
+  project: { created_by: string | null }
+) {
+  return !!profile && (profile.role === "ADMIN" || project.created_by === profile.id);
+}
+
 export function canCreateProject(profile: Pick<Profile, "role"> | null | undefined) {
   return profile?.role === "ADMIN" || profile?.role === "MANAGER";
 }

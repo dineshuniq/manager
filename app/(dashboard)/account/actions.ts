@@ -1,8 +1,8 @@
 "use server";
 
 import { z } from "zod";
-import { createClient as createStatelessClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { verifyPassword } from "@/lib/verify-password";
 
 export interface ChangePasswordState {
   error?: string;
@@ -32,16 +32,7 @@ export async function changePassword(_prev: ChangePasswordState, formData: FormD
   } = await supabase.auth.getUser();
   if (!user?.email) return { error: "Your session has expired. Sign in again." };
 
-  // Verify the current password on a throwaway client so the user's own session cookies stay untouched.
-  const verifier = createStatelessClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { error: verifyError } = await verifier.auth.signInWithPassword({
-    email: user.email,
-    password: parsed.data.current,
-  });
-  if (verifyError) return { error: "Current password is incorrect." };
-  await verifier.auth.signOut({ scope: "local" });
+  if (!(await verifyPassword(user.email, parsed.data.current))) return { error: "Current password is incorrect." };
 
   const { error } = await supabase.auth.updateUser({ password: parsed.data.next });
   if (error) return { error: error.message };

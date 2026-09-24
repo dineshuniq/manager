@@ -4,7 +4,9 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
-import { canCreateProject } from "@/lib/rbac";
+import { canCreateProject, canDeleteProject } from "@/lib/rbac";
+import { projectSlug } from "@/lib/slug";
+import { verifyPassword } from "@/lib/verify-password";
 import { createClient } from "@/lib/supabase/server";
 
 export interface ActionState {
@@ -97,4 +99,45 @@ export async function removeProjectMember(projectId: string, userId: string) {
     .eq("user_id", userId);
   if (error) throw new Error(error.message);
   revalidatePath(`/projects/${projectId}`, "layout");
+}
+
+const deleteSchema = z.object({
+  projectId: z.string().uuid(),
+  slug: z.string().trim().min(1, "Type the project slug to confirm."),
+  password: z.string().min(1, "Enter your password to confirm."),
+});
+
+export async function deleteProject(input: z.infer<typeof deleteSchema>): Promise<ActionState & { success?: boolean }> {
+  const parsed = deleteSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+
+  const profile = await requireProfile();
+  const supabase = await createClient();
+
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id, title, created_by")
+    .eq("id", parsed.data.projectId)
+    .maybeSingle();
+  if (!project) return { error: "That project no longer exists." };
+  if (!canDeleteProject(profile, project)) return { error: "Only the project owner can delete this project." };
+
+  if (parsed.data.slug !== projectSlug(project.title)) {
+    return { error: "The slug you typed doesn't match this project." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email || !(await verifyPassword(user.email, parsed.data.password))) {
+    return { error: "Incorrect password." };
+  }
+
+  // Runs as the user, so the owner/admin delete policy is enforced by the database too.
+  const { data: deleted, error } = await supabase.from("projects").delete().eq("id", project.id).select("id");
+  if (error) return { error: error.message };
+  if (!deleted?.length) return { error: "You don't have permission to delete this project." };
+
+  revalidatePath("/projects", "layout");
+  return { success: true };
 }
