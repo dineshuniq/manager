@@ -58,7 +58,7 @@ export default async function ProjectLayout({
             <span className="truncate text-foreground">{project.title}</span>
           </nav>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 md:mt-3">
-            <div className="flex min-w-0 items-center gap-3 animate-fade-up">
+            <div className="flex w-full min-w-0 items-start gap-3 animate-fade-up">
               <span
                 className="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-sm sm:size-11"
                 style={{ background: `linear-gradient(135deg, oklch(0.68 0.18 ${h}), oklch(0.55 0.2 ${(h + 45) % 360}))` }}
@@ -76,7 +76,9 @@ export default async function ProjectLayout({
                   </p>
                 )}
                 {project.description && (
-                  <p className="hidden truncate text-sm text-muted-foreground sm:block">{project.description}</p>
+                  <p className="mt-1.5 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
+                    {project.description}
+                  </p>
                 )}
               </div>
             </div>
