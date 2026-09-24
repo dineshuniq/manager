@@ -6,6 +6,7 @@ import type { Profile } from "@/lib/types";
 import { AssigneeAvatar, AvatarStack, ProgressRing } from "@/components/shared/badges";
 import { ProjectTabs } from "./project-tabs";
 import { MembersDialog } from "./members-dialog";
+import { ProjectDescription } from "./project-description";
 import { DeleteProjectDialog } from "./delete-project-dialog";
 import { canDeleteProject } from "@/lib/rbac";
 
@@ -76,9 +77,7 @@ export default async function ProjectLayout({
                   </p>
                 )}
                 {project.description && (
-                  <p className="mt-1.5 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
-                    {project.description}
-                  </p>
+                  <ProjectDescription text={project.description} />
                 )}
               </div>
             </div>
