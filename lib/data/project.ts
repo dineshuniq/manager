@@ -44,10 +44,12 @@ export const getProjectContext = cache(async function getProjectContext(projectI
     member_role: m.member_role as ProjectMemberRole,
   }));
 
+  // null = not involved. Managers can still open every project, but read-only.
   const memberRole: ProjectContext["memberRole"] =
     profile.role === "ADMIN"
       ? "ADMIN"
-      : (members.find((m) => m.id === profile.id)?.member_role ?? null);
+      : (members.find((m) => m.id === profile.id)?.member_role ??
+        (project.created_by === profile.id ? "MANAGER" : null));
 
   return {
     project: project as Project,

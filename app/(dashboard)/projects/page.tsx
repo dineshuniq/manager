@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, CheckCircle2, CircleDashed, FolderKanban, Layers, Plus, Timer } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, CircleDashed, Eye, FolderKanban, Layers, Plus, Timer } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth";
 import { canCreateProject } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
@@ -22,9 +22,10 @@ function greeting() {
   return "Good evening";
 }
 
-export default async function ProjectsPage() {
+export default async function ProjectsPage({ searchParams }: PageProps<"/projects">) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
+  const { view } = await searchParams;
 
   const supabase = await createClient();
   const [{ data: projects }, { data: items }, { data: memberRows }] = await Promise.all([
@@ -46,12 +47,24 @@ export default async function ProjectsPage() {
     members.set(m.project_id, list);
   }
 
+  // Managers and Admins see every project; "involved" = creator or member.
+  const canBrowseAll = profile.role === "ADMIN" || profile.role === "MANAGER";
+  const involved = new Set(
+    (projects ?? [])
+      .filter((p) => p.created_by === profile.id || (members.get(p.id) ?? []).some((m) => m.id === profile.id))
+      .map((p) => p.id)
+  );
+  const showMine = canBrowseAll && view === "mine";
+  const shown = ((projects as Project[] | null) ?? []).filter((p) => !showMine || involved.has(p.id));
+  const shownIds = new Set(shown.map((p) => p.id));
+  const shownItems = (items ?? []).filter((it) => shownIds.has(it.project_id));
+
   const totals = { UNASSIGNED: 0, IN_PROGRESS: 0, REVIEW: 0, COMPLETED: 0 } as Record<Stage, number>;
-  for (const it of items ?? []) totals[it.stage as Stage]++;
-  const totalItems = (items ?? []).length;
+  for (const it of shownItems) totals[it.stage as Stage]++;
+  const totalItems = shownItems.length;
 
   const tiles = [
-    { label: "Projects", value: projects?.length ?? 0, icon: FolderKanban, cls: "text-brand bg-brand/12" },
+    { label: showMine ? "My projects" : "Projects", value: shown.length, icon: FolderKanban, cls: "text-brand bg-brand/12" },
     { label: "Open items", value: totalItems - totals.COMPLETED, icon: CircleDashed, cls: "text-stage-todo bg-stage-todo/12" },
     { label: "In progress", value: totals.IN_PROGRESS + totals.REVIEW, icon: Timer, cls: "text-stage-progress bg-stage-progress/12" },
     { label: "Completed", value: totals.COMPLETED, icon: CheckCircle2, cls: "text-stage-done bg-stage-done/12" },
@@ -94,12 +107,38 @@ export default async function ProjectsPage() {
         ))}
       </div>
 
-      <div className="mt-8 flex items-center justify-between sm:mt-10">
-        <h2 className="text-sm font-semibold">All projects</h2>
-        <p className="text-xs text-muted-foreground">{projects?.length ?? 0} total</p>
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 sm:mt-10">
+        <h2 className="text-sm font-semibold">{showMine ? "My projects" : "All projects"}</h2>
+        {canBrowseAll ? (
+          <div className="flex h-9 items-center rounded-xl border bg-surface/60 p-1 text-xs font-medium">
+            {[
+              { key: "all", label: "All", count: projects?.length ?? 0, href: "/projects" },
+              { key: "mine", label: "Mine", count: involved.size, href: "/projects?view=mine" },
+            ].map((t) => {
+              const on = (t.key === "mine") === showMine;
+              return (
+                <Link
+                  key={t.key}
+                  href={t.href}
+                  scroll={false}
+                  aria-current={on ? "page" : undefined}
+                  className={cn(
+                    "inline-flex h-full min-w-16 items-center justify-center gap-1.5 rounded-lg px-3 transition-colors",
+                    on ? "bg-accent text-foreground shadow-sm ring-1 ring-brand/15" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {t.label}
+                  <span className="rounded-md bg-muted px-1.5 tabular-nums text-muted-foreground">{t.count}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">{shown.length} total</p>
+        )}
       </div>
 
-      {(!projects || projects.length === 0) && (
+      {shown.length === 0 && (
         <div className="mt-4 flex flex-col items-center justify-center rounded-3xl border border-dashed bg-card/40 px-6 py-20 text-center animate-fade-up">
           <div className="relative">
             <div className="absolute inset-0 animate-pulse rounded-2xl bg-brand/20 blur-xl" />
@@ -107,7 +146,7 @@ export default async function ProjectsPage() {
               <Layers className="size-6" />
             </span>
           </div>
-          <p className="mt-5 text-base font-semibold">No projects yet</p>
+          <p className="mt-5 text-base font-semibold">{showMine ? "You’re not on any projects yet" : "No projects yet"}</p>
           <p className="mt-1 max-w-xs text-sm text-muted-foreground">
             {canCreateProject(profile)
               ? "Create your first project to start organising stories, tasks, and subtasks."
@@ -125,7 +164,7 @@ export default async function ProjectsPage() {
       )}
 
       <div className="stagger mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {(projects as Project[] | null)?.map((project) => {
+        {shown.map((project) => {
           const s = stats.get(project.id) ?? { UNASSIGNED: 0, IN_PROGRESS: 0, REVIEW: 0, COMPLETED: 0 };
           const total = STAGES.reduce((sum, st) => sum + s[st], 0);
           const pct = total ? Math.round((s.COMPLETED / total) * 100) : 0;
@@ -149,7 +188,13 @@ export default async function ProjectsPage() {
                 >
                   {project.title.slice(0, 1).toUpperCase()}
                 </span>
-                <ArrowUpRight className="size-4 text-muted-foreground opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" />
+                {canBrowseAll && profile.role !== "ADMIN" && !involved.has(project.id) ? (
+                  <span className="inline-flex items-center gap-1 rounded-lg border border-stage-review/30 bg-stage-review/10 px-2 py-1 text-[11px] font-semibold text-stage-review">
+                    <Eye className="size-3" /> View only
+                  </span>
+                ) : (
+                  <ArrowUpRight className="size-4 text-muted-foreground opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" />
+                )}
               </div>
               <h3 className="relative mt-4 line-clamp-1 font-semibold tracking-tight">{project.title}</h3>
               <p className="relative mt-1 line-clamp-2 min-h-10 text-sm text-muted-foreground">

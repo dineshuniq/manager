@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Eye } from "lucide-react";
 import { getProjectContext } from "@/lib/data/project";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
@@ -24,6 +24,7 @@ export default async function ProjectLayout({
   const { project, members, memberRole, workItems } = await getProjectContext(projectId);
 
   const canManage = memberRole === "ADMIN" || memberRole === "MANAGER";
+  const readOnly = memberRole === null;
 
   let allUsers: Profile[] = [];
   if (canManage) {
@@ -66,6 +67,14 @@ export default async function ProjectLayout({
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {readOnly && (
+                <span
+                  title="You're not a member of this project"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-stage-review/30 bg-stage-review/10 px-3 py-1.5 text-xs font-semibold text-stage-review"
+                >
+                  <Eye className="size-3.5" /> View only
+                </span>
+              )}
               <div className="flex items-center gap-2 rounded-xl border bg-surface/60 px-3 py-1.5" title={`${done} of ${total} completed`}>
                 <ProgressRing done={done} total={total} size={20} />
                 <span className="text-sm font-semibold tabular-nums">{pct}%</span>
@@ -86,6 +95,15 @@ export default async function ProjectLayout({
           <ProjectTabs projectId={projectId} />
         </div>
       </div>
+      {readOnly && (
+        <div className="mx-4 mt-3 flex items-start gap-2.5 rounded-xl border border-dashed border-stage-review/40 bg-stage-review/5 px-3.5 py-2.5 text-xs text-muted-foreground sm:mx-6">
+          <Eye className="mt-px size-4 shrink-0 text-stage-review" />
+          <p>
+            <span className="font-semibold text-foreground">You&apos;re viewing this project read-only.</span> You can browse
+            its stories and tasks, but only its members can make changes. Ask one of its managers to add you.
+          </p>
+        </div>
+      )}
       <div className="flex-1">{children}</div>
     </div>
   );
