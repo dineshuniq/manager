@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { Columns3, ListTree } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function ProjectTabs({ projectId }: { projectId: string }) {
+export function ProjectTabs({ projectId, compact = false }: { projectId: string; compact?: boolean }) {
   const pathname = usePathname();
 
   const tabs = [
@@ -15,7 +15,7 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
   ];
 
   return (
-    <div className="flex gap-1 px-4 sm:px-6 md:mt-4">
+    <div className={cn("flex gap-1 px-4 sm:px-6", compact && "pl-0 sm:pl-0")}>
       {tabs.map((tab) => {
         const active = pathname?.startsWith(tab.href);
         return (
@@ -23,7 +23,8 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "relative inline-flex min-h-12 flex-1 items-center justify-center gap-2 px-3 text-sm font-medium transition-colors md:min-h-0 md:flex-none md:pb-3 md:pt-1",
+              "relative inline-flex min-h-12 items-center justify-center gap-2 px-3 text-sm font-medium transition-colors md:min-h-[3.25rem] md:flex-none",
+              !compact && "flex-1",
               active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >

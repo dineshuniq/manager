@@ -4,7 +4,7 @@ import { getProjectContext } from "@/lib/data/project";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 import { AssigneeAvatar, AvatarStack, ProgressRing } from "@/components/shared/badges";
-import { ProjectTabs } from "./project-tabs";
+import { ProjectStickyBar } from "./project-sticky-bar";
 import { MembersDialog } from "./members-dialog";
 import { ProjectDescription } from "./project-description";
 import { DeleteProjectDialog } from "./delete-project-dialog";
@@ -47,10 +47,10 @@ export default async function ProjectLayout({
 
   return (
     <div className="flex min-h-svh flex-col md:min-h-svh">
-      {/* Mobile: only the tab bar sticks (display: contents lets it stick to the page).
-          Desktop: the whole header sticks. */}
-      <div className="contents md:sticky md:top-0 md:z-20 md:block md:border-b md:bg-background/70 md:backdrop-blur-xl">
-        <div className="px-4 pt-3 sm:px-6 md:pt-5">
+      {/* The full header scrolls away; only the tab bar is pinned, and it picks up the
+          project name + owner once this header is off-screen. */}
+      <div className="contents">
+        <div id="project-header-info" className="px-4 pt-3 sm:px-6 md:pt-5">
           <nav className="flex items-center gap-1 text-xs text-muted-foreground">
             <Link href="/projects" className="-my-1 py-1 transition-colors hover:text-foreground">
               Projects
@@ -114,9 +114,13 @@ export default async function ProjectLayout({
             </div>
           </div>
         </div>
-        <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 mt-3 border-b bg-background/80 backdrop-blur-xl md:static md:mt-0 md:border-0 md:bg-transparent md:backdrop-blur-none">
-          <ProjectTabs projectId={projectId} />
-        </div>
+        <ProjectStickyBar
+          projectId={projectId}
+          title={project.title}
+          hue={h}
+          ownerText={owner ? `${ownerLabel} ${ownerName}` : null}
+          readOnly={readOnly}
+        />
       </div>
       {readOnly && (
         <div className="mx-4 mt-3 flex items-start gap-2.5 rounded-xl border border-dashed border-stage-review/40 bg-stage-review/5 px-3.5 py-2.5 text-xs text-muted-foreground sm:mx-6">
